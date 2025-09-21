@@ -4,17 +4,19 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import eu.tutorials.koperasi_simpan_pinjam.pages.AuthenticationPage
-import eu.tutorials.koperasi_simpan_pinjam.pages.DashBoard
-import eu.tutorials.koperasi_simpan_pinjam.pages.LoginPage
-import eu.tutorials.koperasi_simpan_pinjam.pages.RegisterPage
+import eu.tutorials.koperasi_simpan_pinjam.pages.*
 
 @Composable
-fun AppNavHost(navController : NavHostController){
-    NavHost(navController = navController, startDestination = "register"){
-        composable (route = "register"){ RegisterPage(navController) }
-        composable (route = "login"){ LoginPage(navController) }
-        composable (route = "authentication"){ AuthenticationPage(navController) }
-        composable (route = "dashboard"){ DashBoard(navController) }
+fun AppNavHost(navController: NavHostController){
+    NavHost(navController = navController, startDestination = "dashboard"){
+        composable("dashboard") { DashBoard(navController) }
+        composable("login") { LoginPage(navController) }
+        composable("register") { RegisterPage(navController) }
+        composable("authentication") { AuthenticationPage(navController) }
+
+        composable("dummy/{title}") { backStackEntry ->
+            val title = backStackEntry.arguments?.getString("title") ?: "Unknown"
+            DummyPage(title)
+        }
     }
 }
