@@ -14,8 +14,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.tooling.preview.Devices
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import eu.tutorials.koperasi_simpan_pinjam.navigation.AppNavHost
+import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
 import kotlinx.coroutines.launch
 
 // Data class untuk item di drawer
@@ -32,19 +37,19 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
     // Daftar item untuk menu samping (drawer)
     val drawerItems = listOf(
         DrawerItem("Dashboard", { Icon(Icons.Default.Home, contentDescription = null) }, "dashboard"),
-        DrawerItem("Simpanan", { Icon(Icons.Default.AccountBalance, contentDescription = null) }, "simpanan"),
-        DrawerItem("Pinjaman", { Icon(Icons.Default.CreditCard, contentDescription = null) }, "pinjaman"),
-        DrawerItem("Laporan", { Icon(Icons.Default.FileCopy, contentDescription = null) }, "laporan"),
-        DrawerItem("Pengaturan", { Icon(Icons.Default.Settings, contentDescription = null) }, "pengaturan")
+        DrawerItem("Simpanan", { Icon(Icons.Default.AccountBalance, contentDescription = null) }, "dummy/simpanan"),
+        DrawerItem("Pinjaman", { Icon(Icons.Default.CreditCard, contentDescription = null) }, "dummy/pinjaman"),
+        DrawerItem("Laporan", { Icon(Icons.Default.FileCopy, contentDescription = null) }, "dummy/laporan"),
+        DrawerItem("Pengaturan", { Icon(Icons.Default.Settings, contentDescription = null) }, "dummy/pengaturan")
     )
 
     // Daftar item untuk navigasi bawah
     val bottomItems = listOf(
         BottomBarItem("Home", Icons.Default.Home, "dashboard"),
-        BottomBarItem("Simpanan", Icons.Default.AccountBalance, "simpanan"),
-        BottomBarItem("Pinjaman", Icons.Default.CreditCard, "pinjaman"),
-        BottomBarItem("Laporan", Icons.Default.FileCopy, "laporan"),
-        BottomBarItem("Settings", Icons.Default.Settings, "pengaturan")
+        BottomBarItem("Simpanan", Icons.Default.AccountBalance, "dummy/simpanan"),
+        BottomBarItem("Pinjaman", Icons.Default.CreditCard, "dummy/pinjaman"),
+        BottomBarItem("Laporan", Icons.Default.FileCopy, "dummy/laporan"),
+        BottomBarItem("Settings", Icons.Default.Settings, "dummy/pengaturan")
     )
 
     var selectedBottomIndex by remember { mutableStateOf(0) }
@@ -107,7 +112,7 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
             }
         ) { innerPadding ->
             // KONTEN UTAMA DENGAN TOP TAB BAR DIMULAI DARI SINI
-            Column(modifier = Modifier.padding(innerPadding)) {
+            Column(modifier = modifier.padding(innerPadding)) {
                 // 1. Definisikan daftar judul untuk setiap tab
                 val tabs = listOf("Simpan", "Pinjam", "Catatan", "Keseluruhan")
 
@@ -180,5 +185,24 @@ fun KeseluruhanContent() {
         contentAlignment = Alignment.Center
     ) {
         Text(text = "Konten untuk Halaman Keseluruhan")
+    }
+}
+
+@Composable
+fun DummyPage(title: String) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = "This is a dummy page for: $title", style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Preview(showBackground = true, name = "Register page", showSystemUi = true, device = Devices.PIXEL_5)
+@Composable
+fun DashboardPreview() {
+    KoperasiSimpanPinjamTheme {
+        val navController = rememberNavController()
+        AppNavHost(navController)
     }
 }

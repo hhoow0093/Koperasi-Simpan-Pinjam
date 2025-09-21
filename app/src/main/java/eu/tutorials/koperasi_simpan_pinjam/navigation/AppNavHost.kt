@@ -8,7 +8,7 @@ import eu.tutorials.koperasi_simpan_pinjam.pages.*
 
 @Composable
 fun AppNavHost(navController: NavHostController){
-    NavHost(navController = navController, startDestination = "dashboard"){
+    NavHost(navController = navController, startDestination = "register"){
         composable("dashboard") { DashBoard(navController) }
         composable("login") { LoginPage(navController) }
         composable("register") { RegisterPage(navController) }
