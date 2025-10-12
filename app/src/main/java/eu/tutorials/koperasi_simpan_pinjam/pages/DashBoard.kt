@@ -1,5 +1,4 @@
 package eu.tutorials.koperasi_simpan_pinjam.pages
-// ini branch admin
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column

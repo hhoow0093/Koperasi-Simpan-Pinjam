@@ -63,6 +63,7 @@ import androidx.navigation.NavHostController
 import eu.tutorials.koperasi_simpan_pinjam.navigation.AppNavHost
 import androidx.navigation.compose.rememberNavController
 import eu.tutorials.koperasi_simpan_pinjam.pages.AuthenticationPage
+import eu.tutorials.koperasi_simpan_pinjam.pages.LoginPage
 
 val Martel = FontFamily(
     Font(R.font.martelsans_light, FontWeight.Light),
@@ -100,5 +101,14 @@ fun AuthenticationPreview(){
     KoperasiSimpanPinjamTheme {
         val navController = rememberNavController()
         AuthenticationPage(navController)
+    }
+}
+
+@Preview(showBackground = true, name = "Login page", showSystemUi = true, device = Devices.PIXEL_5)
+@Composable
+fun LoginPreview(){
+    KoperasiSimpanPinjamTheme {
+        val navController = rememberNavController()
+        LoginPage(navController)
     }
 }

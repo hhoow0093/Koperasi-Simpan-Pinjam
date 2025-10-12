@@ -35,15 +35,16 @@ import eu.tutorials.koperasi_simpan_pinjam.Martel
 @Composable
 fun PasswordTextField(
     label: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    password: String,
+    onPasswordChange: (String) -> Unit,
 ){
-    var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
 
     BasicTextField(
         value = password,
-        onValueChange = { password = it },
+        onValueChange = onPasswordChange,
         textStyle = TextStyle(fontSize = 15.sp),
         modifier = modifier
             .fillMaxWidth()

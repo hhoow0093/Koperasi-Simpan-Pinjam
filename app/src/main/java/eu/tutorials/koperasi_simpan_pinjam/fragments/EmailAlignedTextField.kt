@@ -27,14 +27,16 @@ import eu.tutorials.koperasi_simpan_pinjam.Martel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EmailAlignedTextField() {
-    var text by remember { mutableStateOf("") }
+fun EmailAlignedTextField(
+    value : String,
+    onValueChange: (String) -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
 
     BasicTextField(
-        value = text,
+        value = value,
         textStyle = TextStyle(fontSize = 15.sp),
-        onValueChange = { text = it },
+        onValueChange = onValueChange,
         modifier = Modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = TextFieldDefaults.MinHeight)
@@ -43,7 +45,7 @@ fun EmailAlignedTextField() {
         interactionSource = interactionSource,
         decorationBox = { innerTextField ->
             TextFieldDefaults.DecorationBox(
-                value = text,
+                value = value,
                 innerTextField = innerTextField,
                 enabled = true,
                 singleLine = true,
