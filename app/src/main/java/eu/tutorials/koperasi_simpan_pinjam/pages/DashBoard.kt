@@ -1,6 +1,12 @@
 package eu.tutorials.koperasi_simpan_pinjam.pages
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.collection.objectListOf
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +32,7 @@ import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,7 +43,9 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -160,8 +169,71 @@ fun SimpananPage() {
 ///HALAMAN PINJAMAN KONTEN NASABAH - Theo & John
 @Composable
 fun PinjamanPage() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = "Konten Halaman Pinjaman")
+    //untuk akses content resolver butuh context
+    val context = LocalContext.current
+
+    //state untuk variable informasi file yang dipilih
+    var namaFileDipilih by remember { mutableStateOf<String?>(null) }
+    var uriDipilih by remember { mutableStateOf<Uri?>(null) }
+
+    //eksekusi utk dapatkan gambar, disediakan lapaknya
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            // Simpan URI yang dipilih ke dalam state
+            uriDipilih = uri
+            // Dapatkan nama file dari URI untuk ditampilkan di UI
+            namaFileDipilih = getFileName(context, uri)
+        }
+    }
+
+    //data contoh aja sebelum masuk DB
+    val tagihanSaatIni = DetailTagihan(
+        nomorTagihan = "INV-2025-10-123",
+        jatuhTempo = "25 Okt 2025",
+        jumlahTagihan = 550000.0,
+        angsuranKe = 4,
+        totalAngsuran = 10
+    )
+    val detailPinjaman = RincianPinjaman(
+        totalPinjaman = 5000000.0,
+        tenor = 10,
+        cicilanPerBulan = 550000.0
+    )
+    LazyColumn (
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ){
+        //bagian kartu tagihan saat ini
+        item{
+            KartuTagihan(
+                tagihan = tagihanSaatIni,
+                namaFile = namaFileDipilih,//nama file dikirim ke composable card
+                onUnggahBuktiClick = {
+                    imagePickerLauncher.launch("image/*")
+                },
+                onKirimBuktiClick = {
+                    // TODO: Panggil fungsi ViewModel/Repository untuk upload
+                    uriDipilih?.let { uri ->
+                        // uploadFileKeServer(context, uri)
+                        println("Mulai mengunggah file: ${getFileName(context, uri)}")
+                    }
+                },
+                onBatalPilihFileClick = {
+                    // Reset state jika pengguna membatalkan
+                    uriDipilih = null
+                    namaFileDipilih = null
+                }
+            )
+        }
+
+        //bagian kartu detail keseluruhan pinjaman
+        item{
+            KartuDetailPinjaman(detail = detailPinjaman)
+        }
     }
 }
 
@@ -353,10 +425,10 @@ fun KartuPinjamanAktif(dataPinjaman: PinjamanAktif){
                 LinearProgressIndicator(
                 progress = { (dataPinjaman.totalAngsuran - dataPinjaman.sisaAngsuran).toFloat() / dataPinjaman.totalAngsuran.toFloat() },
                 modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 4.dp)
-                                        .height(8.dp)
-                                        .clip(RoundedCornerShape(4.dp)),
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                 strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
@@ -479,7 +551,187 @@ fun ItemTransaksi(transaksi: TransaksiSimpanan){
 
 
 //UNTUK BAGIAN TAB PINJAMAN
+//contoh data class tagihan dan detail pinjaman
+data class DetailTagihan(
+    val nomorTagihan: String,
+    val jatuhTempo: String,
+    val jumlahTagihan: Double,
+    val angsuranKe: Int,
+    val totalAngsuran: Int
+)
+data class RincianPinjaman(
+    val totalPinjaman: Double,
+    val tenor: Int, //dalam bulan
+    val cicilanPerBulan: Double
+)
+//composable kartu tagihan harus dibayar
+@Composable
+fun KartuTagihan(
+    tagihan: DetailTagihan,
+    namaFile: String?,
+    onUnggahBuktiClick: () -> Unit,
+    onKirimBuktiClick: () -> Unit,
+    onBatalPilihFileClick: () -> Unit
+){
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    ){
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ){
+            //header kartu
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ){
+                Text(
+                    text = "Tagihan Bulan Ini",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = "Angsuran ${tagihan.angsuranKe}/${tagihan.totalAngsuran}",
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(50)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
 
+            //jumlah tagihan
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Jumlah Tagihan",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
+                Text(
+                    text = "Rp ${tagihan.jumlahTagihan.toFormattedString()}",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = "Jatuh tempo: ${tagihan.jatuhTempo}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Red,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            //tampilkan gambar setelah gambar dipilih
+            AnimatedVisibility(visible=namaFile != null) {
+                Column(
+                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                ){
+                    Text(
+                        "File Terpilih:",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ){
+                        Text(
+                            text = namaFile ?: "Tidak ada file",
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        //icon tombol X untuk batal
+                        IconButton(onClick = onBatalPilihFileClick, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Default.Close, contentDescription = "Batal Pilih File")
+                        }
+                    }
+                }
+            }
+
+            //tombol aksi tagihan
+            //klo belum ada file, tampilin tombol "unggah bukti"
+            //klo sudah ada file, tampilin tombol "kirim bukti"
+            Button(
+                onClick = {
+                    if (namaFile == null) {
+                        onUnggahBuktiClick()
+                    } else {
+                        onKirimBuktiClick()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                val icon = if(namaFile == null) Icons.Default.Upload else Icons.Default.Send
+                val text = if(namaFile == null) "Unggah Bukti Pembayaran" else "Kirim Bukti Sekarang"
+
+                Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
+
+//composable untuk dapatkan nama file dari uri
+fun getFileName(context: Context, uri: Uri): String?{
+    var fileName: String? = null
+    //Query ke contentresolver untuk dapatkan nama
+    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+        if(cursor.moveToFirst()){
+            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if(nameIndex != -1){
+                fileName = cursor.getString(nameIndex)
+            }
+        }
+    }
+    return fileName
+}
+
+//composable kartu detail keseluruhan pinjaman
+@Composable
+fun KartuDetailPinjaman(detail: RincianPinjaman){
+    Column {
+        Text(
+            text = "Rincian Pinjaman Anda",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, Color.LightGray)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                //pakai template InfoRow yang ada di Histori
+                InfoRow(label = "Total Pinjaman", value = "Rp ${detail.totalPinjaman.toFormattedString()}")
+                InfoRow(label = "Tenor Pinjaman", value = "${detail.tenor} Bulan")
+                InfoRow(label = "Cicilan per Bulan", value = "Rp ${detail.cicilanPerBulan.toFormattedString()}")
+            }
+        }
+    }
+}
 
 
 
@@ -562,7 +814,11 @@ fun HistoriAngsuranItem(angsuran: Angsuran){
                     color = if (angsuran.status == "Lunas") Color(0xFF008000) else Color.Red,
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
-                        .background(if (angsuran.status == "Lunas") Color(0xFFE8F5E9) else Color(0xFFFFEBEE))
+                        .background(
+                            if (angsuran.status == "Lunas") Color(0xFFE8F5E9) else Color(
+                                0xFFFFEBEE
+                            )
+                        )
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
