@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.ui.Alignment
@@ -44,7 +45,7 @@ data class DrawerItem(val title: String, val icon: @Composable () -> Unit, val r
 // Data class untuk item di bottom bar
 data class BottomBarItem(val label: String, val icon: ImageVector, val route: String)
 
-///HALAMAN HOMEPAGE KONTEN NASABAH
+///HALAMAN HOMEPAGE KONTEN NASABAH - Theo & John
 @Composable
 fun HomePage() {
     //data contoh, sebelum masuk DB
@@ -110,15 +111,53 @@ fun HomePage() {
     }
 }
 
-///HALAMAN SIMPANAN KONTEN NASABAH
+///HALAMAN SIMPANAN KONTEN NASABAH - Theo & John
 @Composable
 fun SimpananPage() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = "Konten Halaman Simpanan")
+    //hanya data contoh sebelum masok ke DB
+    val saldoSaatIni = 1500000.0
+    val daftarTransaksi = listOf(
+        TransaksiSimpanan("S001", "05 Okt 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT),
+        TransaksiSimpanan("S002", "01 Okt 2025", "Tarik Tunai", 250000.0, TipeTransaksi.DEBIT),
+        TransaksiSimpanan("S003", "15 Sep 2025", "Simpanan Sukarela", 50000.0, TipeTransaksi.KREDIT),
+        TransaksiSimpanan("S004", "05 Sep 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT),
+        TransaksiSimpanan("S005", "20 Ags 2025", "Biaya Administrasi", 5000.0, TipeTransaksi.DEBIT),
+        TransaksiSimpanan("S006", "05 Ags 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT)
+    )
+
+    LazyColumn (
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ){
+        item{
+            Text(
+                text = "Bagian Theo disini",
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+        //bagian kartu saldo total
+        item {
+            KartuSaldoTotal(saldo = saldoSaatIni)
+        }
+        //bagian judul untuk daftar mutasi
+        item {
+            Text(
+                text = "Mutasi Rekening",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top=8.dp)
+            )
+        }
+        //bagian daftar transaksi
+        items(daftarTransaksi){transaksi ->
+            ItemTransaksi(transaksi=transaksi)
+        }
     }
 }
 
-///HALAMAN PINJAMAN KONTEN NASABAH
+///HALAMAN PINJAMAN KONTEN NASABAH - Theo & John
 @Composable
 fun PinjamanPage() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -126,7 +165,7 @@ fun PinjamanPage() {
     }
 }
 
-///HALAMAN HISTORI KONTEN NASABAH
+///HALAMAN HISTORI KONTEN NASABAH - John
 @Composable
 fun HistoriPage() {
     LazyColumn(
@@ -166,7 +205,7 @@ fun HistoriPage() {
     }
 }
 
-///HALAMAN PROFIL KONTEN NASABAH
+///HALAMAN PROFIL KONTEN NASABAH - Theo
 @Composable
 fun ProfilPage() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -350,8 +389,98 @@ fun InfoPinjamanRow(label: String, value: String, isHighlight: Boolean = false) 
 
 
 //UNTUK BAGIAN TAB SIMPANAN
+enum class TipeTransaksi{
+    KREDIT, DEBIT
+}
+data class TransaksiSimpanan(
+    val id: String,
+    val tanggal: String,
+    val keterangan: String,
+    val jumlah: Double,
+    val tipe: TipeTransaksi //kredit(masuk) atau debit(keluar)
+)
+//composable kartu saldo total
+@Composable
+fun KartuSaldoTotal(saldo: Double){
+    Card (
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(6.dp)
+    ){
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(
+                text = "Total Saldo Simpanan Anda",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+            Text(
+                text = "Rp ${saldo.toFormattedString()}",
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+//composable tiap transaksi
+@Composable
+fun ItemTransaksi(transaksi: TransaksiSimpanan){
+    val (icon, color) = when (transaksi.tipe) {
+        TipeTransaksi.KREDIT -> Icons.Default.ArrowUpward to Color(0xFF008000) //hijau kalo uang masuk
+        TipeTransaksi.DEBIT -> Icons.Default.ArrowDownward to Color.Red //merah kalo uang keluar
+    }
+    val prefix = if (transaksi.tipe == TipeTransaksi.KREDIT) "+ " else "- "
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ){
+        Icon(
+            imageVector = icon,
+            contentDescription = transaksi.tipe.name,
+            tint = color,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(color.copy(alpha = 0.1f))
+                .padding(8.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = transaksi.keterangan,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = transaksi.tanggal,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
+        }
+
+        Text(
+            text = "$prefix Rp ${transaksi.jumlah.toFormattedString()}",
+            fontWeight = FontWeight.Bold,
+            color = color,
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+
 
 //UNTUK BAGIAN TAB PINJAMAN
+
+
 
 
 //UNTUK BAGIAN TAB HISTORI
