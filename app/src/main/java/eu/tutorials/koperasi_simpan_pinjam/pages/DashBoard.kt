@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -43,15 +44,73 @@ data class DrawerItem(val title: String, val icon: @Composable () -> Unit, val r
 // Data class untuk item di bottom bar
 data class BottomBarItem(val label: String, val icon: ImageVector, val route: String)
 
-// --- HALAMAN KONTEN BARU UNTUK SETIAP ITEM BOTTOM NAVBAR ---
-
+///HALAMAN HOMEPAGE KONTEN NASABAH
 @Composable
 fun HomePage() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = "Konten Halaman Home")
+    //data contoh, sebelum masuk DB
+    val pinjamanNasabah = PinjamanAktif(
+        pokok = 5000000.0,
+        bunga = 50000.0,
+        totalCicilanPerBulan = 550000.0,
+        sisaAngsuran = 9,
+        totalAngsuran = 10
+    )
+    //supaya bisa scroll pakai lazycolumn
+    LazyColumn (
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ){
+        item {
+            Text(
+                text = "Selamat Datang, Nasabah!",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+
+        item {
+            Text(
+                text = "Bagian Theo disini",
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+
+        item {
+            //panggil composablekhusus untuk menampilkan kartu pinjaman
+            KartuPinjamanAktif(dataPinjaman = pinjamanNasabah)
+        }
+        item {
+            Spacer(
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = "Menu Cepat",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ){
+                Button(onClick = {/*TODO: Navigasi ke halaman pinjaman buat bayar*/}, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.Payment, contentDescription = null, modifier = Modifier.padding(8.dp))
+                    Text("Bayar Cicilan")
+                }
+                OutlinedButton(onClick = {/*TODO: navigasi ke halaman pinjam*/}, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.AddCard, contentDescription = null, modifier = Modifier.padding(end=8.dp))
+                    Text("Ajukan Pinjaman")
+                }
+            }
+        }
     }
 }
 
+///HALAMAN SIMPANAN KONTEN NASABAH
 @Composable
 fun SimpananPage() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -59,6 +118,7 @@ fun SimpananPage() {
     }
 }
 
+///HALAMAN PINJAMAN KONTEN NASABAH
 @Composable
 fun PinjamanPage() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -66,6 +126,7 @@ fun PinjamanPage() {
     }
 }
 
+///HALAMAN HISTORI KONTEN NASABAH
 @Composable
 fun HistoriPage() {
     LazyColumn(
@@ -105,12 +166,14 @@ fun HistoriPage() {
     }
 }
 
+///HALAMAN PROFIL KONTEN NASABAH
 @Composable
 fun ProfilPage() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(text = "Konten Halaman Profil")
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,6 +251,108 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
         }
     }
 }
+
+///SEMUA BANTUAN DAN KOMPONEN-KOMPONEN TIAP HALAMAN NASABAH:
+//UNTUK BAGIAN TAB HOME
+//data class untuk Pinjaman aktif
+data class PinjamanAktif(
+    val pokok: Double,
+    val bunga: Double,
+    val totalCicilanPerBulan: Double,
+    val sisaAngsuran: Int, //dalam bulan
+    val totalAngsuran: Int
+)
+//composable kartupinjaman aktif
+@Composable
+fun KartuPinjamanAktif(dataPinjaman: PinjamanAktif){
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ){
+            Text(
+                text = "Rincian Pinjaman Aktif",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Divider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f))
+
+            //biar consistent
+            InfoPinjamanRow(label = "Sisa Pokok Pinjaman", value = "Rp ${dataPinjaman.pokok.toFormattedString()}")
+            InfoPinjamanRow(label = "Bunga per Bulan", value = "Rp ${dataPinjaman.bunga.toFormattedString()}")
+
+            Divider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f), thickness = 0.5.dp)
+
+            InfoPinjamanRow(
+                label = "Total Cicilan per Bulan",
+                value = "Rp ${dataPinjaman.totalCicilanPerBulan.toFormattedString()}",
+                isHighlight = true //biar lebih nonjol
+            )
+
+            //bagian sisa angsuran
+            Column(modifier = Modifier.padding(top = 8.dp)) {
+                Text(
+                    text = "Sisa Angsuran",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = "${dataPinjaman.sisaAngsuran} dari ${dataPinjaman.totalAngsuran} bulan",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                //progress bar visualisasi sisa angsuran (masih error deh ini huhu)
+                LinearProgressIndicator(
+                progress = { (dataPinjaman.totalAngsuran - dataPinjaman.sisaAngsuran).toFloat() / dataPinjaman.totalAngsuran.toFloat() },
+                modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp)
+                                        .height(8.dp)
+                                        .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
+                )
+            }
+        }
+    }
+}
+//composable untuk consistency
+@Composable
+fun InfoPinjamanRow(label: String, value: String, isHighlight: Boolean = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = if (isHighlight) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+        )
+        Text(
+            text = value,
+            style = if (isHighlight) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
+            fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    }
+}
+
+
+//UNTUK BAGIAN TAB SIMPANAN
+
+//UNTUK BAGIAN TAB PINJAMAN
+
 
 //UNTUK BAGIAN TAB HISTORI
 //data class untuk menampung data
@@ -289,6 +454,9 @@ fun InfoRow(label: String, value: String){
 fun Double.toFormattedString(): String{
     return "%,.0f".format(this).replace(',', '.')
 }
+
+//UNTUK BAGIAN TAB PROFIL
+
 
 @Preview(showBackground = true, name = "Dashboard Page", showSystemUi = true, device = Devices.PIXEL_5)
 @Composable
