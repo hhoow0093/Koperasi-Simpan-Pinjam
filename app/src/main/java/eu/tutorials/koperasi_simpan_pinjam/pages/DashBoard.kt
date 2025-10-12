@@ -169,6 +169,7 @@ fun SimpananPage() {
 ///HALAMAN PINJAMAN KONTEN NASABAH - Theo & John
 @Composable
 fun PinjamanPage() {
+    //bagian theo disini
     //untuk akses content resolver butuh context
     val context = LocalContext.current
 
