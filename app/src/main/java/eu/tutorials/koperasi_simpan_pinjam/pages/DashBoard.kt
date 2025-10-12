@@ -1,5 +1,6 @@
 package eu.tutorials.koperasi_simpan_pinjam.pages
 
+import androidx.collection.objectListOf
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Devices
@@ -24,6 +24,19 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 // Data class untuk item di drawer
 data class DrawerItem(val title: String, val icon: @Composable () -> Unit, val route: String)
@@ -55,8 +68,40 @@ fun PinjamanPage() {
 
 @Composable
 fun HistoriPage() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = "Konten Halaman Histori")
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp) //jarak antar item
+    ){
+        //laporan bulanan
+        item {
+            LaporanBulananSection(
+                totalSimpanan = 1500000.0,
+                totalPinjaman = 5000000.0,
+                totalAngsuranBulanIni = 500000.0
+            )
+        }
+
+        //bagian daftar histori pembayaran
+        item {
+            Text(
+                text = "Histori Pembayaran Angsuran",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        //contoh data aja
+        val daftarAngsuran = listOf(
+            Angsuran("A001", "10 Okt 2025", 500000.0, "Angsuran 3", "Lunas"),
+            Angsuran("A002", "11 Sep 2025", 500000.0, "Angsuran 2", "Lunas"),
+            Angsuran("A003", "14 Ags 2025", 500000.0, "Angsuran 1", "Lunas"),
+            Angsuran("A004", "11 Jul 2025", 250000.0, "Bayar Denda", "Lunas"),
+        )
+        //nampilin tiap item histori dengan items()
+        items(daftarAngsuran){  angsuran->
+            HistoriAngsuranItem(angsuran=angsuran)
+        }
     }
 }
 
@@ -142,6 +187,107 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
             composable("profil") { ProfilPage() }
         }
     }
+}
+
+//UNTUK BAGIAN TAB HISTORI
+//data class untuk menampung data
+data class Angsuran(
+    val id: String,
+    val tanggal: String,
+    val jumlah: Double,
+    val keterangan: String,
+    val status: String  //"Lunas" atau "JatuhTempo"
+)
+//composable bagian laporan bulanan
+@Composable
+fun LaporanBulananSection(
+    totalSimpanan: Double,
+    totalPinjaman: Double,
+    totalAngsuranBulanIni: Double
+){
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(12.dp)
+    ){
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ){
+            Text(
+                text = "Laporan Bulan Ini",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            InfoRow(label = "Total Simpanan", value = "Rp ${totalSimpanan.toFormattedString()}")
+            InfoRow(label = "Sisa Pinjaman Aktif", value = "Rp ${totalPinjaman.toFormattedString()}")
+            InfoRow(label = "Angsuran Dibayar", value = "Rp ${totalAngsuranBulanIni.toFormattedString()}")
+        }
+    }
+}
+//composable tiap item di daftar histori
+@Composable
+fun HistoriAngsuranItem(angsuran: Angsuran){
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, Color.LightGray)
+    ){
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ){
+            Column(
+                modifier = Modifier.weight(1f)
+            ){
+                Text(
+                    text = angsuran.keterangan,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = "Tanggal: ${angsuran.tanggal}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+            Column(horizontalAlignment = Alignment.End){
+                Text(
+                    text = "Rp ${angsuran.jumlah.toFormattedString()}",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = angsuran.status,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (angsuran.status == "Lunas") Color(0xFF008000) else Color.Red,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(if (angsuran.status == "Lunas") Color(0xFFE8F5E9) else Color(0xFFFFEBEE))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
+}
+//buat helper di Composable dan Formatting
+@Composable
+fun InfoRow(label: String, value: String){
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ){
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+        Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+    }
+}
+fun Double.toFormattedString(): String{
+    return "%,.0f".format(this).replace(',', '.')
 }
 
 @Preview(showBackground = true, name = "Dashboard Page", showSystemUi = true, device = Devices.PIXEL_5)
