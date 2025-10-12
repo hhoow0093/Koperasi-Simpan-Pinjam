@@ -13,10 +13,5 @@ fun AppNavHost(navController: NavHostController){
         composable("login") { LoginPage(navController) }
         composable("register") { RegisterPage(navController) }
         composable("authentication") { AuthenticationPage(navController) }
-
-        composable("dummy/{title}") { backStackEntry ->
-            val title = backStackEntry.arguments?.getString("title") ?: "Unknown"
-            DummyPage(title)
-        }
     }
 }

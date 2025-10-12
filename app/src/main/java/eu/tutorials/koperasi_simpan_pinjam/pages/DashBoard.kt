@@ -1,24 +1,27 @@
 package eu.tutorials.koperasi_simpan_pinjam.pages
-import androidx.compose.foundation.ExperimentalFoundationApi
+
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import eu.tutorials.koperasi_simpan_pinjam.navigation.AppNavHost
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
 import kotlinx.coroutines.launch
 
@@ -27,181 +30,124 @@ data class DrawerItem(val title: String, val icon: @Composable () -> Unit, val r
 // Data class untuk item di bottom bar
 data class BottomBarItem(val label: String, val icon: ImageVector, val route: String)
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+// --- HALAMAN KONTEN BARU UNTUK SETIAP ITEM BOTTOM NAVBAR ---
+
+@Composable
+fun HomePage() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "Konten Halaman Home")
+    }
+}
+
+@Composable
+fun SimpananPage() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "Konten Halaman Simpanan")
+    }
+}
+
+@Composable
+fun PinjamanPage() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "Konten Halaman Pinjaman")
+    }
+}
+
+@Composable
+fun HistoriPage() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "Konten Halaman Histori")
+    }
+}
+
+@Composable
+fun ProfilPage() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "Konten Halaman Profil")
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
+    val dashboardNavController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    // Daftar item untuk menu samping (drawer)
-    val drawerItems = listOf(
-        DrawerItem("Dashboard", { Icon(Icons.Default.Home, contentDescription = null) }, "dashboard"),
-        DrawerItem("Simpanan", { Icon(Icons.Default.AccountBalance, contentDescription = null) }, "dummy/simpanan"),
-        DrawerItem("Pinjaman", { Icon(Icons.Default.CreditCard, contentDescription = null) }, "dummy/pinjaman"),
-        DrawerItem("Laporan", { Icon(Icons.Default.FileCopy, contentDescription = null) }, "dummy/laporan"),
-        DrawerItem("Pengaturan", { Icon(Icons.Default.Settings, contentDescription = null) }, "dummy/pengaturan")
-    )
-
-    // Daftar item untuk navigasi bawah
     val bottomItems = listOf(
-        BottomBarItem("Home", Icons.Default.Home, "dashboard"),
-        BottomBarItem("Simpanan", Icons.Default.AccountBalance, "dummy/simpanan"),
-        BottomBarItem("Pinjaman", Icons.Default.CreditCard, "dummy/pinjaman"),
-        BottomBarItem("Laporan", Icons.Default.FileCopy, "dummy/laporan"),
-        BottomBarItem("Settings", Icons.Default.Settings, "dummy/pengaturan")
+        BottomBarItem("Home", Icons.Default.Home, "home"),
+        BottomBarItem("Simpanan", Icons.Default.AccountBalanceWallet, "simpanan"),
+        BottomBarItem("Pinjaman", Icons.Default.CreditCard, "pinjaman"),
+        BottomBarItem("Histori", Icons.Default.History, "histori"),
+        BottomBarItem("Profil", Icons.Default.Person, "profil")
     )
 
-    var selectedBottomIndex by remember { mutableStateOf(0) }
+    // untuk simpan title
+    var currentTitle by remember { mutableStateOf("Home") } // Nilai awal "Home"
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Text(
-                    text = "Koperasi Simpan Pinjam",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(16.dp)
-                )
+    // navigasi backstack
+    val navBackStackEntry by dashboardNavController.currentBackStackEntryAsState()
 
-                drawerItems.forEach { item ->
-                    NavigationDrawerItem(
-                        label = { Text(item.title) },
-                        icon = item.icon,
-                        selected = false,
+    // update title
+    LaunchedEffect(navBackStackEntry) {
+        val currentRoute = navBackStackEntry?.destination?.route
+        val newTitle = bottomItems.find { it.route == currentRoute }?.label ?: "Dashboard"
+        currentTitle = newTitle
+    }
+
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(currentTitle) },
+                navigationIcon = {
+                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            NavigationBar {
+                val currentDestination = navBackStackEntry?.destination
+
+                bottomItems.forEach { item ->
+                    NavigationBarItem(
+                        icon = { Icon(item.icon, contentDescription = item.label) },
+                        label = { Text(item.label) },
+                        selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
                         onClick = {
-                            scope.launch { drawerState.close() }
-                            // Navigasi bisa disesuaikan nanti
-                            navController.navigate(item.route) {
+                            dashboardNavController.navigate(item.route) {
+                                popUpTo(dashboardNavController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
                                 launchSingleTop = true
+                                restoreState = true
                             }
                         }
                     )
                 }
             }
         }
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Dashboard") },
-                    navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
-                        }
-                    }
-                )
-            },
-            bottomBar = {
-                NavigationBar {
-                    bottomItems.forEachIndexed { index, item ->
-                        NavigationBarItem(
-                            icon = { Icon(item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) },
-                            selected = selectedBottomIndex == index,
-                            onClick = {
-                                selectedBottomIndex = index
-                                // Navigasi bisa disesuaikan nanti
-                                navController.navigate(item.route) {
-                                    launchSingleTop = true
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-        ) { innerPadding ->
-            // KONTEN UTAMA DENGAN TOP TAB BAR DIMULAI DARI SINI
-            Column(modifier = modifier.padding(innerPadding)) {
-                // 1. Definisikan daftar judul untuk setiap tab
-                val tabs = listOf("Simpan", "Pinjam", "Catatan", "Keseluruhan")
-
-                // 2. Buat PagerState untuk mengontrol halaman
-                val pagerState = rememberPagerState(pageCount = { tabs.size })
-                val coroutineScope = rememberCoroutineScope()
-
-                // 3. Buat TabRow (Baris Tab di Atas)
-                TabRow(selectedTabIndex = pagerState.currentPage) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            },
-                            text = { Text(text = title) }
-                        )
-                    }
-                }
-
-                // 4. Buat HorizontalPager (Konten yang Bisa Digeser)
-                HorizontalPager(state = pagerState) { page ->
-                    when (page) {
-                        0 -> SimpananContent()
-                        1 -> PinjamanContent()
-                        2 -> CatatanContent()
-                        3 -> KeseluruhanContent()
-                    }
-                }
-            }
+    ) { innerPadding ->
+        NavHost(
+            navController = dashboardNavController,
+            startDestination = "home",
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            composable("home") { HomePage() }
+            composable("simpanan") { SimpananPage() }
+            composable("pinjaman") { PinjamanPage() }
+            composable("histori") { HistoriPage() }
+            composable("profil") { ProfilPage() }
         }
     }
 }
-@Composable
-fun SimpananContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "Konten untuk Halaman Simpanan")
-    }
-}
 
-@Composable
-fun PinjamanContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "Konten untuk Halaman Pinjaman")
-    }
-}
-
-@Composable
-fun CatatanContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "Konten untuk Halaman Catatan")
-    }
-}
-
-@Composable
-fun KeseluruhanContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "Konten untuk Halaman Keseluruhan")
-    }
-}
-
-@Composable
-fun DummyPage(title: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "This is a dummy page for: $title", style = MaterialTheme.typography.titleMedium)
-    }
-}
-
-@Preview(showBackground = true, name = "Register page", showSystemUi = true, device = Devices.PIXEL_5)
+@Preview(showBackground = true, name = "Dashboard Page", showSystemUi = true, device = Devices.PIXEL_5)
 @Composable
 fun DashboardPreview() {
     KoperasiSimpanPinjamTheme {
-        val navController = rememberNavController()
-        AppNavHost(navController)
+        DashBoard(navController = rememberNavController())
     }
 }
