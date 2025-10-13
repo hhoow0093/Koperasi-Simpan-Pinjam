@@ -5,22 +5,79 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.collection.objectListOf
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCard
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ProgressIndicatorDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -30,24 +87,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 // Data class untuk item di drawer
 data class DrawerItem(val title: String, val icon: @Composable () -> Unit, val route: String)
@@ -81,10 +120,34 @@ fun HomePage() {
         }
 
         item {
-            Text(
-                text = "Bagian Theo disini",
-                style = MaterialTheme.typography.bodyLarge
-            )
+            // Bagian untuk menampilkan saldo simpanan nasabah (fitur tambahan)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = "Saldo Simpanan",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F6F6))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Simpanan Pokok: Rp 1.000.000")
+                        Text("Simpanan Wajib: Rp 500.000")
+                        Text("Simpanan Sukarela: Rp 750.000")
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        Text(
+                            "Total Saldo: Rp 2.250.000",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
 
         item {
@@ -134,6 +197,11 @@ fun SimpananPage() {
         TransaksiSimpanan("S006", "05 Ags 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT)
     )
 
+    //saldo simpanan pokok, wajib, sukarela
+    val saldoPokok = 1000000.0
+    val saldoWajib = 300000.0
+    val saldoSukarela = 200000.0
+
     LazyColumn (
         modifier = Modifier
             .fillMaxSize()
@@ -146,10 +214,21 @@ fun SimpananPage() {
                 style = MaterialTheme.typography.bodyLarge
             )
         }
+
+        // kartu 3 jenis simpanan
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                CardSimpananDetail("Simpanan Pokok", saldoPokok)
+                CardSimpananDetail("Simpanan Wajib", saldoWajib)
+                CardSimpananDetail("Simpanan Sukarela", saldoSukarela)
+            }
+        }
+
         //bagian kartu saldo total
         item {
             KartuSaldoTotal(saldo = saldoSaatIni)
         }
+
         //bagian judul untuk daftar mutasi
         item {
             Text(
@@ -166,25 +245,36 @@ fun SimpananPage() {
     }
 }
 
-///HALAMAN PINJAMAN KONTEN NASABAH - Theo & John
+// Tambahan komponen baru untuk fitur 3
+@Composable
+fun CardSimpananDetail(jenis: String, saldo: Double) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Color.LightGray)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(jenis, fontWeight = FontWeight.SemiBold)
+            Text("Rp ${saldo.toFormattedString()}", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+////HALAMAN PINJAMAN KONTEN NASABAH - Theo & John
 @Composable
 fun PinjamanPage() {
-    //bagian theo disini
-    //untuk akses content resolver butuh context
     val context = LocalContext.current
-
-    //state untuk variable informasi file yang dipilih
     var namaFileDipilih by remember { mutableStateOf<String?>(null) }
     var uriDipilih by remember { mutableStateOf<Uri?>(null) }
 
-    //eksekusi utk dapatkan gambar, disediakan lapaknya
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            // Simpan URI yang dipilih ke dalam state
             uriDipilih = uri
-            // Dapatkan nama file dari URI untuk ditampilkan di UI
             namaFileDipilih = getFileName(context, uri)
         }
     }
@@ -197,46 +287,160 @@ fun PinjamanPage() {
         angsuranKe = 4,
         totalAngsuran = 10
     )
+
     val detailPinjaman = RincianPinjaman(
         totalPinjaman = 5000000.0,
         tenor = 10,
         cicilanPerBulan = 550000.0
     )
-    LazyColumn (
+
+    //pengajuan pinjaman bar + status pinjaman
+    var jumlahPinjamanBaru by remember { mutableStateOf("") }
+    var tenorPinjaman by remember { mutableStateOf(6f) }
+    val daftarPengajuan = remember {
+        mutableStateListOf(
+            PengajuanPinjaman("PNJ001", "10 Okt 2025", 3000000.0, 6, "Disetujui"),
+            PengajuanPinjaman("PNJ002", "02 Okt 2025", 7000000.0, 12, "Proses"),
+            PengajuanPinjaman("PNJ003", "25 Sep 2025", 10000000.0, 24, "Ditolak")
+        )
+    }
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
-    ){
-        //bagian kartu tagihan saat ini
-        item{
+    ) {
+        //kart tagihan
+        item {
             KartuTagihan(
                 tagihan = tagihanSaatIni,
-                namaFile = namaFileDipilih,//nama file dikirim ke composable card
-                onUnggahBuktiClick = {
-                    imagePickerLauncher.launch("image/*")
-                },
+                namaFile = namaFileDipilih,
+                onUnggahBuktiClick = { imagePickerLauncher.launch("image/*") },
                 onKirimBuktiClick = {
-                    // TODO: Panggil fungsi ViewModel/Repository untuk upload
                     uriDipilih?.let { uri ->
-                        // uploadFileKeServer(context, uri)
                         println("Mulai mengunggah file: ${getFileName(context, uri)}")
                     }
                 },
                 onBatalPilihFileClick = {
-                    // Reset state jika pengguna membatalkan
                     uriDipilih = null
                     namaFileDipilih = null
                 }
             )
         }
 
-        //bagian kartu detail keseluruhan pinjaman
-        item{
+        //rincian pinjaman
+        item {
             KartuDetailPinjaman(detail = detailPinjaman)
+        }
+
+        //pengajuan pinjaman baru
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = "Ajukan Pinjaman Baru",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                OutlinedTextField(
+                    value = jumlahPinjamanBaru,
+                    onValueChange = { jumlahPinjamanBaru = it },
+                    label = { Text("Jumlah Pinjaman (Rp)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text("Tenor: ${tenorPinjaman.toInt()} bulan")
+
+                Slider(
+                    value = tenorPinjaman,
+                    onValueChange = { tenorPinjaman = it },
+                    valueRange = 3f..24f,
+                    steps = 7
+                )
+
+                Button(
+                    onClick = {
+                        if (jumlahPinjamanBaru.isNotEmpty()) {
+                            daftarPengajuan.add(
+                                PengajuanPinjaman(
+                                    id = "PNJ" + (daftarPengajuan.size + 1)
+                                        .toString().padStart(3, '0'),
+                                    tanggal = "13 Okt 2025",
+                                    jumlah = jumlahPinjamanBaru.toDouble(),
+                                    tenor = tenorPinjaman.toInt(),
+                                    status = "Proses"
+                                )
+                            )
+                            jumlahPinjamanBaru = ""
+                            tenorPinjaman = 6f
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Ajukan Sekarang")
+                }
+            }
+        }
+
+        //daftar status pinjaman
+        item {
+            Text(
+                text = "Status Pengajuan Pinjaman",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        items(daftarPengajuan) { pengajuan ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(1.dp, Color.LightGray),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Tanggal: ${pengajuan.tanggal}", color = Color.Gray)
+                        Text("Jumlah: Rp ${pengajuan.jumlah.toFormattedString()}")
+                        Text("Tenor: ${pengajuan.tenor} bulan")
+                    }
+                    Text(
+                        pengajuan.status,
+                        color = when (pengajuan.status) {
+                            "Disetujui" -> Color(0xFF2E7D32)
+                            "Ditolak" -> Color.Red
+                            else -> Color(0xFFFFA000)
+                        },
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }
+
+//data class tambahan pengajuan
+data class PengajuanPinjaman(
+    val id: String,
+    val tanggal: String,
+    val jumlah: Double,
+    val tenor: Int,
+    val status: String
+)
 
 ///HALAMAN HISTORI KONTEN NASABAH - John
 @Composable
@@ -281,10 +485,56 @@ fun HistoriPage() {
 ///HALAMAN PROFIL KONTEN NASABAH - Theo
 @Composable
 fun ProfilPage() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = "Konten Halaman Profil")
+    //profil + status keanggotaan
+    val dataProfil = ProfilNasabah(
+        nama = "Theodorus Aditya",
+        idAnggota = "ANG-2025-001",
+        tanggalGabung = "15 Januari 2023",
+        statusKeanggotaan = "Aktif",
+        poin = 120
+    )
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text(
+                text = "Profil Anggota",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(6.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    InfoRow(label = "Nama Lengkap", value = dataProfil.nama)
+                    InfoRow(label = "ID Anggota", value = dataProfil.idAnggota)
+                    InfoRow(label = "Tanggal Bergabung", value = dataProfil.tanggalGabung)
+                    InfoRow(label = "Status", value = dataProfil.statusKeanggotaan)
+                    InfoRow(label = "Poin Keaktifan", value = "${dataProfil.poin}")
+                }
+            }
+        }
     }
 }
+
+// data class untuk fitur 2
+data class ProfilNasabah(
+    val nama: String,
+    val idAnggota: String,
+    val tanggalGabung: String,
+    val statusKeanggotaan: String,
+    val poin: Int
+)
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
