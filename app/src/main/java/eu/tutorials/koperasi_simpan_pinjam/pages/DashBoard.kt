@@ -1,8 +1,12 @@
 package eu.tutorials.koperasi_simpan_pinjam.pages
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -24,6 +28,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCard
@@ -44,6 +49,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -78,6 +84,7 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -85,8 +92,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
+import eu.tutorials.koperasi_simpan_pinjam.utils.PENGAJUAN_CHANNEL_ID
+import eu.tutorials.koperasi_simpan_pinjam.utils.showNotification
+import eu.tutorials.koperasi_simpan_pinjam.workers.JatuhTempoWorker
 import kotlinx.coroutines.launch
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
 
 // Data class untuk item di drawer
 data class DrawerItem(val title: String, val icon: @Composable () -> Unit, val route: String)
@@ -96,6 +111,31 @@ data class BottomBarItem(val label: String, val icon: ImageVector, val route: St
 ///HALAMAN HOMEPAGE KONTEN NASABAH - Theo & John
 @Composable
 fun HomePage() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val context = LocalContext.current
+        // Launcher untuk meminta izin
+        val requestPermissionLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                // Izin diberikan, bagus!
+                Toast.makeText(context, "Izin notifikasi diberikan.", Toast.LENGTH_SHORT).show()
+            } else {
+                // Izin ditolak.
+                Toast.makeText(context, "Anda tidak akan menerima notifikasi.", Toast.LENGTH_SHORT)
+                    .show()
+            }
+        }
+        LaunchedEffect(Unit) {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
     //data contoh, sebelum masuk DB
     val pinjamanNasabah = PinjamanAktif(
         pokok = 5000000.0,
@@ -140,7 +180,7 @@ fun HomePage() {
                         Text("Simpanan Pokok: Rp 1.000.000")
                         Text("Simpanan Wajib: Rp 500.000")
                         Text("Simpanan Sukarela: Rp 750.000")
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         Text(
                             "Total Saldo: Rp 2.250.000",
                             fontWeight = FontWeight.Bold
@@ -164,21 +204,6 @@ fun HomePage() {
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth()
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ){
-                Button(onClick = {/*TODO: Navigasi ke halaman pinjaman buat bayar*/}, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.Payment, contentDescription = null, modifier = Modifier.padding(8.dp))
-                    Text("Bayar Cicilan")
-                }
-                OutlinedButton(onClick = {/*TODO: navigasi ke halaman pinjam*/}, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.AddCard, contentDescription = null, modifier = Modifier.padding(end=8.dp))
-                    Text("Ajukan Pinjaman")
-                }
-            }
         }
     }
 }
@@ -208,13 +233,6 @@ fun SimpananPage() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ){
-        item{
-            Text(
-                text = "Bagian Theo disini",
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
-
         // kartu 3 jenis simpanan
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -369,16 +387,54 @@ fun PinjamanPage() {
                 Button(
                     onClick = {
                         if (jumlahPinjamanBaru.isNotEmpty()) {
+                            val jumlahPinjaman = jumlahPinjamanBaru.toDouble()
+                            val tenorPinjamanInt = tenorPinjaman.toInt()
+
                             daftarPengajuan.add(
                                 PengajuanPinjaman(
                                     id = "PNJ" + (daftarPengajuan.size + 1)
                                         .toString().padStart(3, '0'),
                                     tanggal = "13 Okt 2025",
-                                    jumlah = jumlahPinjamanBaru.toDouble(),
-                                    tenor = tenorPinjaman.toInt(),
+                                    jumlah = jumlahPinjaman,
+                                    tenor = tenorPinjamanInt,
                                     status = "Proses"
                                 )
                             )
+                            //logika penjadwalan buat notif
+                            val calendar = Calendar.getInstance()
+                            calendar.add(Calendar.MONTH, 1)
+                            calendar.add(Calendar.DAY_OF_MONTH, -3)
+                            calendar.set(Calendar.HOUR_OF_DAY, 10)
+
+                            val delayInMillis = calendar.timeInMillis - System.currentTimeMillis()
+                            if(delayInMillis>0){
+                                val cicilanPerBulan = jumlahPinjaman / tenorPinjamanInt
+                                val dataUntukNotifikasi = Data.Builder()
+                                    .putString("JUMLAH_TAGIHAN", "Rp ${cicilanPerBulan.toFormattedString()}")
+                                    .putString("TANGGAL_JATUH_TEMPO", "${calendar.get(Calendar.DAY_OF_MONTH)+3}/${calendar.get(
+                                        Calendar.MONTH)+1}/${calendar.get(Calendar.YEAR)}")
+                                    .build()
+
+                                //request pekerjaan untuk work manager
+                                val notificationWorkRequest = OneTimeWorkRequestBuilder<JatuhTempoWorker>()
+                                    .setInitialDelay(delayInMillis, TimeUnit.MILLISECONDS)
+                                    .setInputData(dataUntukNotifikasi)
+                                    .build()
+
+                                //jalanin worker
+                                WorkManager.getInstance(context).enqueue(notificationWorkRequest)
+                                Toast.makeText(context, "Pengingat jatuh tempo telah diatur.", Toast.LENGTH_LONG).show()
+                            }
+
+                            //buat show notif setelah aju pinjaman
+                            showNotification(
+                                context = context,
+                                channelId = PENGAJUAN_CHANNEL_ID,
+                                notificationId = System.currentTimeMillis().toInt(),
+                                title = "Pengajuan Pinjaman Terkirim",
+                                content = "Pengajuan pinjaman Anda sebesar Rp ${jumlahPinjaman.toFormattedString()} sedang dalam proses review, mohon ditunggu, terima kasih."
+                            )
+
                             jumlahPinjamanBaru = ""
                             tenorPinjaman = 6f
                         }
@@ -645,13 +701,13 @@ fun KartuPinjamanAktif(dataPinjaman: PinjamanAktif){
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
-            Divider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f))
 
             //biar consistent
             InfoPinjamanRow(label = "Sisa Pokok Pinjaman", value = "Rp ${dataPinjaman.pokok.toFormattedString()}")
             InfoPinjamanRow(label = "Bunga per Bulan", value = "Rp ${dataPinjaman.bunga.toFormattedString()}")
 
-            Divider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f), thickness = 0.5.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f), thickness = 0.5.dp)
 
             InfoPinjamanRow(
                 label = "Total Cicilan per Bulan",
@@ -930,7 +986,7 @@ fun KartuTagihan(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                val icon = if(namaFile == null) Icons.Default.Upload else Icons.Default.Send
+                val icon = if(namaFile == null) Icons.Default.Upload else Icons.AutoMirrored.Filled.Send
                 val text = if(namaFile == null) "Unggah Bukti Pembayaran" else "Kirim Bukti Sekarang"
 
                 Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -1016,7 +1072,7 @@ fun LaporanBulananSection(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             InfoRow(label = "Total Simpanan", value = "Rp ${totalSimpanan.toFormattedString()}")
             InfoRow(label = "Sisa Pinjaman Aktif", value = "Rp ${totalPinjaman.toFormattedString()}")
             InfoRow(label = "Angsuran Dibayar", value = "Rp ${totalAngsuranBulanIni.toFormattedString()}")

@@ -64,6 +64,7 @@ import eu.tutorials.koperasi_simpan_pinjam.navigation.AppNavHost
 import androidx.navigation.compose.rememberNavController
 import eu.tutorials.koperasi_simpan_pinjam.pages.AuthenticationPage
 import eu.tutorials.koperasi_simpan_pinjam.pages.LoginPage
+import eu.tutorials.koperasi_simpan_pinjam.utils.createNotificationChannels
 
 val Martel = FontFamily(
     Font(R.font.martelsans_light, FontWeight.Light),
@@ -72,6 +73,10 @@ val Martel = FontFamily(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //buat membuat notification channels di utils/NotificationUtils.kt
+        createNotificationChannels(this)
+
         //enableEdgeToEdge()
         setContent {
             KoperasiSimpanPinjamTheme {
