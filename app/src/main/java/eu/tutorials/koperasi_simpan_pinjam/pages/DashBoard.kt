@@ -1,12 +1,11 @@
 package eu.tutorials.koperasi_simpan_pinjam.pages
 
-import android.Manifest
+import androidx.compose.foundation.Image
+import coil.compose.AsyncImage
+import androidx.compose.ui.draw.clip
 import android.content.Context
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.provider.OpenableColumns
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -28,7 +27,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCard
@@ -49,7 +47,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -84,7 +81,6 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -92,16 +88,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.work.Data
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
-import eu.tutorials.koperasi_simpan_pinjam.utils.PENGAJUAN_CHANNEL_ID
-import eu.tutorials.koperasi_simpan_pinjam.utils.showNotification
-import eu.tutorials.koperasi_simpan_pinjam.workers.JatuhTempoWorker
 import kotlinx.coroutines.launch
-import java.util.Calendar
-import java.util.concurrent.TimeUnit
 
 // Data class untuk item di drawer
 data class DrawerItem(val title: String, val icon: @Composable () -> Unit, val route: String)
@@ -111,31 +99,6 @@ data class BottomBarItem(val label: String, val icon: ImageVector, val route: St
 ///HALAMAN HOMEPAGE KONTEN NASABAH - Theo & John
 @Composable
 fun HomePage() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        val context = LocalContext.current
-        // Launcher untuk meminta izin
-        val requestPermissionLauncher = rememberLauncherForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                // Izin diberikan, bagus!
-                Toast.makeText(context, "Izin notifikasi diberikan.", Toast.LENGTH_SHORT).show()
-            } else {
-                // Izin ditolak.
-                Toast.makeText(context, "Anda tidak akan menerima notifikasi.", Toast.LENGTH_SHORT)
-                    .show()
-            }
-        }
-        LaunchedEffect(Unit) {
-            if (ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        }
-    }
-
     //data contoh, sebelum masuk DB
     val pinjamanNasabah = PinjamanAktif(
         pokok = 5000000.0,
@@ -180,7 +143,7 @@ fun HomePage() {
                         Text("Simpanan Pokok: Rp 1.000.000")
                         Text("Simpanan Wajib: Rp 500.000")
                         Text("Simpanan Sukarela: Rp 750.000")
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
                         Text(
                             "Total Saldo: Rp 2.250.000",
                             fontWeight = FontWeight.Bold
@@ -204,6 +167,21 @@ fun HomePage() {
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth()
             )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ){
+                Button(onClick = {/*TODO: Navigasi ke halaman pinjaman buat bayar*/}, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.Payment, contentDescription = null, modifier = Modifier.padding(8.dp))
+                    Text("Bayar Cicilan")
+                }
+                OutlinedButton(onClick = {/*TODO: navigasi ke halaman pinjam*/}, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.AddCard, contentDescription = null, modifier = Modifier.padding(end=8.dp))
+                    Text("Ajukan Pinjaman")
+                }
+            }
         }
     }
 }
@@ -233,6 +211,13 @@ fun SimpananPage() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ){
+        item{
+            Text(
+                text = "Bagian Theo disini",
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+
         // kartu 3 jenis simpanan
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -387,54 +372,16 @@ fun PinjamanPage() {
                 Button(
                     onClick = {
                         if (jumlahPinjamanBaru.isNotEmpty()) {
-                            val jumlahPinjaman = jumlahPinjamanBaru.toDouble()
-                            val tenorPinjamanInt = tenorPinjaman.toInt()
-
                             daftarPengajuan.add(
                                 PengajuanPinjaman(
                                     id = "PNJ" + (daftarPengajuan.size + 1)
                                         .toString().padStart(3, '0'),
                                     tanggal = "13 Okt 2025",
-                                    jumlah = jumlahPinjaman,
-                                    tenor = tenorPinjamanInt,
+                                    jumlah = jumlahPinjamanBaru.toDouble(),
+                                    tenor = tenorPinjaman.toInt(),
                                     status = "Proses"
                                 )
                             )
-                            //logika penjadwalan buat notif
-                            val calendar = Calendar.getInstance()
-                            calendar.add(Calendar.MONTH, 1)
-                            calendar.add(Calendar.DAY_OF_MONTH, -3)
-                            calendar.set(Calendar.HOUR_OF_DAY, 10)
-
-                            val delayInMillis = calendar.timeInMillis - System.currentTimeMillis()
-                            if(delayInMillis>0){
-                                val cicilanPerBulan = jumlahPinjaman / tenorPinjamanInt
-                                val dataUntukNotifikasi = Data.Builder()
-                                    .putString("JUMLAH_TAGIHAN", "Rp ${cicilanPerBulan.toFormattedString()}")
-                                    .putString("TANGGAL_JATUH_TEMPO", "${calendar.get(Calendar.DAY_OF_MONTH)+3}/${calendar.get(
-                                        Calendar.MONTH)+1}/${calendar.get(Calendar.YEAR)}")
-                                    .build()
-
-                                //request pekerjaan untuk work manager
-                                val notificationWorkRequest = OneTimeWorkRequestBuilder<JatuhTempoWorker>()
-                                    .setInitialDelay(delayInMillis, TimeUnit.MILLISECONDS)
-                                    .setInputData(dataUntukNotifikasi)
-                                    .build()
-
-                                //jalanin worker
-                                WorkManager.getInstance(context).enqueue(notificationWorkRequest)
-                                Toast.makeText(context, "Pengingat jatuh tempo telah diatur.", Toast.LENGTH_LONG).show()
-                            }
-
-                            //buat show notif setelah aju pinjaman
-                            showNotification(
-                                context = context,
-                                channelId = PENGAJUAN_CHANNEL_ID,
-                                notificationId = System.currentTimeMillis().toInt(),
-                                title = "Pengajuan Pinjaman Terkirim",
-                                content = "Pengajuan pinjaman Anda sebesar Rp ${jumlahPinjaman.toFormattedString()} sedang dalam proses review, mohon ditunggu, terima kasih."
-                            )
-
                             jumlahPinjamanBaru = ""
                             tenorPinjaman = 6f
                         }
@@ -539,50 +486,6 @@ fun HistoriPage() {
 }
 
 ///HALAMAN PROFIL KONTEN NASABAH - Theo
-@Composable
-fun ProfilPage() {
-    //profil + status keanggotaan
-    val dataProfil = ProfilNasabah(
-        nama = "Theodorus Aditya",
-        idAnggota = "ANG-2025-001",
-        tanggalGabung = "15 Januari 2023",
-        statusKeanggotaan = "Aktif",
-        poin = 120
-    )
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Text(
-                text = "Profil Anggota",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(6.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    InfoRow(label = "Nama Lengkap", value = dataProfil.nama)
-                    InfoRow(label = "ID Anggota", value = dataProfil.idAnggota)
-                    InfoRow(label = "Tanggal Bergabung", value = dataProfil.tanggalGabung)
-                    InfoRow(label = "Status", value = dataProfil.statusKeanggotaan)
-                    InfoRow(label = "Poin Keaktifan", value = "${dataProfil.poin}")
-                }
-            }
-        }
-    }
-}
-
-// data class untuk fitur 2
 data class ProfilNasabah(
     val nama: String,
     val idAnggota: String,
@@ -590,6 +493,105 @@ data class ProfilNasabah(
     val statusKeanggotaan: String,
     val poin: Int
 )
+
+//profil page
+@Composable
+fun ProfilPage() {
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? -> imageUri = uri }
+
+    val dataProfil = remember {
+        ProfilNasabah(
+            nama = "Theo Aditya",
+            idAnggota = "AGT-2301",
+            tanggalGabung = "14 Oktober 2023",
+            statusKeanggotaan = "Aktif",
+            poin = 120
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF6F6F6))
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        // foto profil
+        Card(
+            shape = CircleShape,
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            modifier = Modifier
+                .size(120.dp)
+                .clip(CircleShape)
+                .border(2.dp, Color.Gray, CircleShape)
+        ) {
+            AsyncImage(
+                model = imageUri ?: "https://via.placeholder.com/150",
+                contentDescription = "Foto Profil",
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(onClick = { launcher.launch("image/*") }) {
+            Icon(Icons.Default.Upload, contentDescription = "Upload")
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(text = "Ubah Foto Profil")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // detail profil
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Detail Pengguna",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                ProfilInfoRow(label = "Nama Lengkap", value = dataProfil.nama)
+                ProfilInfoRow(label = "ID Anggota", value = dataProfil.idAnggota)
+                ProfilInfoRow(label = "Tanggal Gabung", value = dataProfil.tanggalGabung)
+                ProfilInfoRow(label = "Status Keanggotaan", value = dataProfil.statusKeanggotaan)
+                ProfilInfoRow(label = "Total Poin", value = "${dataProfil.poin} poin")
+            }
+        }
+    }
+}
+
+// komponen buat profilpage
+@Composable
+fun ProfilInfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp,
+            color = Color.DarkGray
+        )
+        Text(
+            text = value,
+            fontSize = 16.sp,
+            color = Color.Black
+        )
+    }
+}
 
 
 
@@ -701,13 +703,13 @@ fun KartuPinjamanAktif(dataPinjaman: PinjamanAktif){
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f))
+            Divider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f))
 
             //biar consistent
             InfoPinjamanRow(label = "Sisa Pokok Pinjaman", value = "Rp ${dataPinjaman.pokok.toFormattedString()}")
             InfoPinjamanRow(label = "Bunga per Bulan", value = "Rp ${dataPinjaman.bunga.toFormattedString()}")
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f), thickness = 0.5.dp)
+            Divider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f), thickness = 0.5.dp)
 
             InfoPinjamanRow(
                 label = "Total Cicilan per Bulan",
@@ -986,7 +988,7 @@ fun KartuTagihan(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                val icon = if(namaFile == null) Icons.Default.Upload else Icons.AutoMirrored.Filled.Send
+                val icon = if(namaFile == null) Icons.Default.Upload else Icons.Default.Send
                 val text = if(namaFile == null) "Unggah Bukti Pembayaran" else "Kirim Bukti Sekarang"
 
                 Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -1072,7 +1074,7 @@ fun LaporanBulananSection(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
             InfoRow(label = "Total Simpanan", value = "Rp ${totalSimpanan.toFormattedString()}")
             InfoRow(label = "Sisa Pinjaman Aktif", value = "Rp ${totalPinjaman.toFormattedString()}")
             InfoRow(label = "Angsuran Dibayar", value = "Rp ${totalAngsuranBulanIni.toFormattedString()}")
