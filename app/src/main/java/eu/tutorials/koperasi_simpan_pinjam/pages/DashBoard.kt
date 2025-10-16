@@ -2,6 +2,7 @@
 package eu.tutorials.koperasi_simpan_pinjam.pages
 
 import android.Manifest
+import android.R
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -61,9 +62,6 @@ import eu.tutorials.koperasi_simpan_pinjam.ui.theme.DeepBlue
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
 import kotlinx.coroutines.launch
 import java.io.File
-
-// Data class untuk item di drawer
-data class DrawerItem(val title: String, val icon: @Composable () -> Unit, val route: String)
 
 // Data class untuk item di bottom bar
 data class BottomBarItem(val label: String, val icon: ImageVector, val route: String)
@@ -795,12 +793,11 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(currentTitle) },
-                navigationIcon = {
-                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
-                    }
-                }
+                title = { Text(currentTitle, color = Color.White) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DeepBlue,
+                    titleContentColor = Color.White
+                )
             )
         },
         bottomBar = {
