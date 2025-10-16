@@ -1,9 +1,7 @@
+// File: pages/Pages.kt (atau sesuaikan nama filenya)
 package eu.tutorials.koperasi_simpan_pinjam.pages
 
 import android.Manifest
-import androidx.compose.foundation.Image
-import coil.compose.AsyncImage
-import androidx.compose.ui.draw.clip
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -14,8 +12,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,48 +32,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCard
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Payment
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ProgressIndicatorDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDrawerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,6 +48,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -93,24 +56,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
+import eu.tutorials.koperasi_simpan_pinjam.ui.theme.DeepBlue
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
 import kotlinx.coroutines.launch
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.core.content.FileProvider
 import java.io.File
 
 // Data class untuk item di drawer
 data class DrawerItem(val title: String, val icon: @Composable () -> Unit, val route: String)
+
 // Data class untuk item di bottom bar
 data class BottomBarItem(val label: String, val icon: ImageVector, val route: String)
 
 ///HALAMAN HOMEPAGE KONTEN NASABAH - Theo & John
 @Composable
-fun HomePage() {
+fun HomePage(navController: NavHostController) {
     //data contoh, sebelum masuk DB
     val pinjamanNasabah = PinjamanAktif(
         pokok = 5000000.0,
@@ -133,7 +93,6 @@ fun HomePage() {
                 modifier = Modifier.padding(bottom = 16.dp)
             )
         }
-
         item {
             // Bagian untuk menampilkan saldo simpanan nasabah (fitur tambahan)
             Column(
@@ -149,22 +108,37 @@ fun HomePage() {
                 )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F6F6))
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface // Gunakan warna dari theme
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp) // Tambahkan elevasi
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Simpanan Pokok: Rp 1.000.000")
-                        Text("Simpanan Wajib: Rp 500.000")
-                        Text("Simpanan Sukarela: Rp 750.000")
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        Text(
+                            "Simpanan Pokok: Rp 1.000.000",
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "Simpanan Wajib: Rp 500.000",
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "Simpanan Sukarela: Rp 750.000",
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.outline // Gunakan warna outline dari theme
+                        )
                         Text(
                             "Total Saldo: Rp 2.250.000",
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
             }
         }
-
         item {
             //panggil composablekhusus untuk menampilkan kartu pinjaman
             KartuPinjamanAktif(dataPinjaman = pinjamanNasabah)
@@ -185,11 +159,35 @@ fun HomePage() {
                     .padding(top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ){
-                Button(onClick = {/*TODO: Navigasi ke halaman pinjaman buat bayar*/}, modifier = Modifier.weight(1f)) {
+                Button(
+                    onClick = {
+                        /*TODO: Navigasi ke halaman pinjaman buat bayar*/
+                        navController.navigate("pinjaman") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
                     Icon(Icons.Default.Payment, contentDescription = null, modifier = Modifier.padding(8.dp))
                     Text("Bayar Cicilan")
                 }
-                OutlinedButton(onClick = {/*TODO: navigasi ke halaman pinjam*/}, modifier = Modifier.weight(1f)) {
+                OutlinedButton(
+                    onClick = {
+                        /*TODO: navigasi ke halaman pinjam*/
+                        navController.navigate("pinjaman") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
                     Icon(Icons.Default.AddCard, contentDescription = null, modifier = Modifier.padding(end=8.dp))
                     Text("Ajukan Pinjaman")
                 }
@@ -211,12 +209,10 @@ fun SimpananPage() {
         TransaksiSimpanan("S005", "20 Ags 2025", "Biaya Administrasi", 5000.0, TipeTransaksi.DEBIT),
         TransaksiSimpanan("S006", "05 Ags 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT)
     )
-
     //saldo simpanan pokok, wajib, sukarela
     val saldoPokok = 1000000.0
     val saldoWajib = 300000.0
     val saldoSukarela = 200000.0
-
     LazyColumn (
         modifier = Modifier
             .fillMaxSize()
@@ -226,10 +222,10 @@ fun SimpananPage() {
         item{
             Text(
                 text = "Bagian Theo disini",
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
-
         // kartu 3 jenis simpanan
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -238,19 +234,18 @@ fun SimpananPage() {
                 CardSimpananDetail("Simpanan Sukarela", saldoSukarela)
             }
         }
-
         //bagian kartu saldo total
         item {
             KartuSaldoTotal(saldo = saldoSaatIni)
         }
-
         //bagian judul untuk daftar mutasi
         item {
             Text(
                 text = "Mutasi Rekening",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top=8.dp)
+                modifier = Modifier.padding(top=8.dp),
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
         //bagian daftar transaksi
@@ -266,14 +261,22 @@ fun CardSimpananDetail(jenis: String, saldo: Double) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, Color.LightGray)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline) // Gunakan outline dari theme
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(jenis, fontWeight = FontWeight.SemiBold)
-            Text("Rp ${saldo.toFormattedString()}", fontWeight = FontWeight.Bold)
+            Text(
+                jenis,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                "Rp ${saldo.toFormattedString()}",
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
@@ -287,7 +290,6 @@ fun PinjamanPage() {
     var uriDipilih by remember { mutableStateOf<Uri?>(null) }
     val sheetState = rememberModalBottomSheetState()
     var isSheetOpen by remember{mutableStateOf(false)}
-
     var tempUri by remember { mutableStateOf<Uri?>(null) }
 
     LaunchedEffect(Unit) {
@@ -384,7 +386,13 @@ fun PinjamanPage() {
             onDismissRequest = { isSheetOpen = false }
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Pilih Sumber Gambar", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 16.dp))
+                Text(
+                    "Pilih Sumber Gambar",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
                 //opsi kamera
                 Row(
                     modifier = Modifier
@@ -402,9 +410,17 @@ fun PinjamanPage() {
                         .padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.PhotoCamera, contentDescription = "Kamera")
+                    Icon(
+                        Icons.Default.PhotoCamera,
+                        contentDescription = "Kamera",
+                        tint = MaterialTheme.colorScheme.primary // Gunakan warna primary dari theme
+                    )
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text("Ambil Foto dari Kamera", fontSize = 18.sp)
+                    Text(
+                        "Ambil Foto dari Kamera",
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
                 //opsi galeri
                 Row(
@@ -422,9 +438,17 @@ fun PinjamanPage() {
                         .padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.PhotoLibrary, contentDescription = "Galeri")
+                    Icon(
+                        Icons.Default.PhotoLibrary,
+                        contentDescription = "Galeri",
+                        tint = MaterialTheme.colorScheme.primary // Gunakan warna primary dari theme
+                    )
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text("Pilih dari Galeri", fontSize = 18.sp)
+                    Text(
+                        "Pilih dari Galeri",
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
@@ -439,7 +463,6 @@ fun PinjamanPage() {
         angsuranKe = 4,
         totalAngsuran = 10
     )
-
     val detailPinjaman = RincianPinjaman(
         totalPinjaman = 5000000.0,
         tenor = 10,
@@ -482,12 +505,10 @@ fun PinjamanPage() {
                 }
             )
         }
-
         //rincian pinjaman
         item {
             KartuDetailPinjaman(detail = detailPinjaman)
         }
-
         //pengajuan pinjaman baru
         item {
             Column(
@@ -499,27 +520,26 @@ fun PinjamanPage() {
                     text = "Ajukan Pinjaman Baru",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    color = MaterialTheme.colorScheme.onBackground
                 )
-
                 OutlinedTextField(
                     value = jumlahPinjamanBaru,
                     onValueChange = { jumlahPinjamanBaru = it },
                     label = { Text("Jumlah Pinjaman (Rp)") },
                     modifier = Modifier.fillMaxWidth()
                 )
-
                 Spacer(modifier = Modifier.height(12.dp))
-
-                Text("Tenor: ${tenorPinjaman.toInt()} bulan")
-
+                Text(
+                    "Tenor: ${tenorPinjaman.toInt()} bulan",
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 Slider(
                     value = tenorPinjaman,
                     onValueChange = { tenorPinjaman = it },
                     valueRange = 3f..24f,
                     steps = 7
                 )
-
                 Button(
                     onClick = {
                         if (jumlahPinjamanBaru.isNotEmpty()) {
@@ -545,21 +565,23 @@ fun PinjamanPage() {
                 }
             }
         }
-
         //daftar status pinjaman
         item {
             Text(
                 text = "Status Pengajuan Pinjaman",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
-
         items(daftarPengajuan) { pengajuan ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, Color.LightGray),
-                shape = RoundedCornerShape(8.dp)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), // Gunakan outline dari theme
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface // Gunakan warna dari theme
+                )
             ) {
                 Row(
                     modifier = Modifier
@@ -568,16 +590,25 @@ fun PinjamanPage() {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
-                        Text("Tanggal: ${pengajuan.tanggal}", color = Color.Gray)
-                        Text("Jumlah: Rp ${pengajuan.jumlah.toFormattedString()}")
-                        Text("Tenor: ${pengajuan.tenor} bulan")
+                        Text(
+                            "Tanggal: ${pengajuan.tanggal}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant // Gunakan warna yang lebih pudar
+                        )
+                        Text(
+                            "Jumlah: Rp ${pengajuan.jumlah.toFormattedString()}",
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "Tenor: ${pengajuan.tenor} bulan",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     Text(
                         pengajuan.status,
                         color = when (pengajuan.status) {
-                            "Disetujui" -> Color(0xFF2E7D32)
-                            "Ditolak" -> Color.Red
-                            else -> Color(0xFFFFA000)
+                            "Disetujui" -> Color(0xFF2E7D32) // Hijau khusus untuk disetujui
+                            "Ditolak" -> MaterialTheme.colorScheme.error // Gunakan warna error untuk ditolak
+                            else -> Color(0xFFFFA000) // Warna khusus untuk proses
                         },
                         fontWeight = FontWeight.Bold
                     )
@@ -614,13 +645,13 @@ fun HistoriPage() {
                 totalAngsuranBulanIni = 500000.0
             )
         }
-
         //bagian daftar histori pembayaran
         item {
             Text(
                 text = "Histori Pembayaran Angsuran",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
         //contoh data aja
@@ -653,7 +684,6 @@ fun ProfilPage() {
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? -> imageUri = uri }
-
     val dataProfil = remember {
         ProfilNasabah(
             nama = "Theo Aditya",
@@ -663,15 +693,13 @@ fun ProfilPage() {
             poin = 120
         )
     }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF6F6F6))
+            .background(MaterialTheme.colorScheme.background) // Gunakan background dari theme
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
         // foto profil
         Card(
             shape = CircleShape,
@@ -679,7 +707,7 @@ fun ProfilPage() {
             modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape)
-                .border(2.dp, Color.Gray, CircleShape)
+                .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape) // Gunakan outline dari theme
         ) {
             AsyncImage(
                 model = imageUri ?: "https://via.placeholder.com/150",
@@ -687,29 +715,25 @@ fun ProfilPage() {
                 modifier = Modifier.fillMaxSize()
             )
         }
-
         Spacer(modifier = Modifier.height(8.dp))
-
         Button(onClick = { launcher.launch("image/*") }) {
             Icon(Icons.Default.Upload, contentDescription = "Upload")
             Spacer(modifier = Modifier.width(4.dp))
             Text(text = "Ubah Foto Profil")
         }
-
         Spacer(modifier = Modifier.height(16.dp))
-
         // detail profil
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface) // Gunakan warna dari theme
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "Detail Pengguna",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary // Gunakan warna primary dari theme
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 ProfilInfoRow(label = "Nama Lengkap", value = dataProfil.nama)
@@ -735,17 +759,15 @@ fun ProfilInfoRow(label: String, value: String) {
             text = label,
             fontWeight = FontWeight.SemiBold,
             fontSize = 16.sp,
-            color = Color.DarkGray
+            color = MaterialTheme.colorScheme.onSurfaceVariant // Gunakan warna yang lebih pudar
         )
         Text(
             text = value,
             fontSize = 16.sp,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
-
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -753,7 +775,6 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
     val dashboardNavController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-
     val bottomItems = listOf(
         BottomBarItem("Home", Icons.Default.Home, "home"),
         BottomBarItem("Simpanan", Icons.Default.AccountBalanceWallet, "simpanan"),
@@ -761,21 +782,16 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
         BottomBarItem("Histori", Icons.Default.History, "histori"),
         BottomBarItem("Profil", Icons.Default.Person, "profil")
     )
-
     // untuk simpan title
-    var currentTitle by remember { mutableStateOf("Home") } // Nilai awal "Home"
-
+    var currentTitle by remember { mutableStateOf("Home") }
     // navigasi backstack
     val navBackStackEntry by dashboardNavController.currentBackStackEntryAsState()
-
     // update title
     LaunchedEffect(navBackStackEntry) {
         val currentRoute = navBackStackEntry?.destination?.route
         val newTitle = bottomItems.find { it.route == currentRoute }?.label ?: "Dashboard"
         currentTitle = newTitle
     }
-
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -790,7 +806,6 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
         bottomBar = {
             NavigationBar {
                 val currentDestination = navBackStackEntry?.destination
-
                 bottomItems.forEach { item ->
                     NavigationBarItem(
                         icon = { Icon(item.icon, contentDescription = item.label) },
@@ -815,7 +830,7 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("home") { HomePage() }
+            composable("home") { HomePage(navController = dashboardNavController) }
             composable("simpanan") { SimpananPage() }
             composable("pinjaman") { PinjamanPage() }
             composable("histori") { HistoriPage() }
@@ -834,6 +849,7 @@ data class PinjamanAktif(
     val sisaAngsuran: Int, //dalam bulan
     val totalAngsuran: Int
 )
+
 //composable kartupinjaman aktif
 @Composable
 fun KartuPinjamanAktif(dataPinjaman: PinjamanAktif){
@@ -856,19 +872,15 @@ fun KartuPinjamanAktif(dataPinjaman: PinjamanAktif){
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Divider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f))
-
             //biar consistent
             InfoPinjamanRow(label = "Sisa Pokok Pinjaman", value = "Rp ${dataPinjaman.pokok.toFormattedString()}")
             InfoPinjamanRow(label = "Bunga per Bulan", value = "Rp ${dataPinjaman.bunga.toFormattedString()}")
-
             Divider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f), thickness = 0.5.dp)
-
             InfoPinjamanRow(
                 label = "Total Cicilan per Bulan",
                 value = "Rp ${dataPinjaman.totalCicilanPerBulan.toFormattedString()}",
                 isHighlight = true //biar lebih nonjol
             )
-
             //bagian sisa angsuran
             Column(modifier = Modifier.padding(top = 8.dp)) {
                 Text(
@@ -884,20 +896,21 @@ fun KartuPinjamanAktif(dataPinjaman: PinjamanAktif){
                 )
                 //progress bar visualisasi sisa angsuran (masih error deh ini huhu)
                 LinearProgressIndicator(
-                progress = { (dataPinjaman.totalAngsuran - dataPinjaman.sisaAngsuran).toFloat() / dataPinjaman.totalAngsuran.toFloat() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp)
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
+                    progress = { (dataPinjaman.totalAngsuran - dataPinjaman.sisaAngsuran).toFloat() / dataPinjaman.totalAngsuran.toFloat() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                    strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
                 )
             }
         }
     }
 }
+
 //composable untuk consistency
 @Composable
 fun InfoPinjamanRow(label: String, value: String, isHighlight: Boolean = false) {
@@ -920,11 +933,11 @@ fun InfoPinjamanRow(label: String, value: String, isHighlight: Boolean = false) 
     }
 }
 
-
 //UNTUK BAGIAN TAB SIMPANAN
 enum class TipeTransaksi{
     KREDIT, DEBIT
 }
+
 data class TransaksiSimpanan(
     val id: String,
     val tanggal: String,
@@ -932,13 +945,17 @@ data class TransaksiSimpanan(
     val jumlah: Double,
     val tipe: TipeTransaksi //kredit(masuk) atau debit(keluar)
 )
+
 //composable kartu saldo total
 @Composable
 fun KartuSaldoTotal(saldo: Double){
     Card (
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(6.dp)
+        elevation = CardDefaults.cardElevation(6.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer // Gunakan warna dari theme
+        )
     ){
         Column(
             modifier = Modifier
@@ -949,26 +966,26 @@ fun KartuSaldoTotal(saldo: Double){
             Text(
                 text = "Total Saldo Simpanan Anda",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) // Gunakan warna dari theme
             )
             Text(
                 text = "Rp ${saldo.toFormattedString()}",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onPrimaryContainer // Gunakan warna dari theme
             )
         }
     }
 }
+
 //composable tiap transaksi
 @Composable
 fun ItemTransaksi(transaksi: TransaksiSimpanan){
     val (icon, color) = when (transaksi.tipe) {
-        TipeTransaksi.KREDIT -> Icons.Default.ArrowUpward to Color(0xFF008000) //hijau kalo uang masuk
-        TipeTransaksi.DEBIT -> Icons.Default.ArrowDownward to Color.Red //merah kalo uang keluar
+        TipeTransaksi.KREDIT -> Icons.Default.ArrowUpward to MaterialTheme.colorScheme.primary // Gunakan warna primary untuk kredit
+        TipeTransaksi.DEBIT -> Icons.Default.ArrowDownward to MaterialTheme.colorScheme.error // Gunakan warna error untuk debit
     }
     val prefix = if (transaksi.tipe == TipeTransaksi.KREDIT) "+ " else "- "
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -986,20 +1003,19 @@ fun ItemTransaksi(transaksi: TransaksiSimpanan){
                 .padding(8.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
-
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = transaksi.keterangan,
                 fontWeight = FontWeight.SemiBold,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = transaksi.tanggal,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant // Gunakan warna yang lebih pudar
             )
         }
-
         Text(
             text = "$prefix Rp ${transaksi.jumlah.toFormattedString()}",
             fontWeight = FontWeight.Bold,
@@ -1008,8 +1024,6 @@ fun ItemTransaksi(transaksi: TransaksiSimpanan){
         )
     }
 }
-
-
 
 //UNTUK BAGIAN TAB PINJAMAN
 //contoh data class tagihan dan detail pinjaman
@@ -1020,11 +1034,13 @@ data class DetailTagihan(
     val angsuranKe: Int,
     val totalAngsuran: Int
 )
+
 data class RincianPinjaman(
     val totalPinjaman: Double,
     val tenor: Int, //dalam bulan
     val cicilanPerBulan: Double
 )
+
 //composable kartu tagihan harus dibayar
 @Composable
 fun KartuTagihan(
@@ -1038,7 +1054,7 @@ fun KartuTagihan(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer) // Gunakan warna dari theme
     ){
         Column(
             modifier = Modifier.padding(20.dp),
@@ -1068,7 +1084,6 @@ fun KartuTagihan(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             }
-
             //jumlah tagihan
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -1085,11 +1100,10 @@ fun KartuTagihan(
                 Text(
                     text = "Jatuh tempo: ${tagihan.jatuhTempo}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Red,
+                    color = MaterialTheme.colorScheme.error, // Gunakan warna error untuk jatuh tempo
                     fontWeight = FontWeight.SemiBold
                 )
             }
-
             //tampilkan gambar setelah gambar dipilih
             AnimatedVisibility(visible=namaFile != null) {
                 Column(
@@ -1105,7 +1119,7 @@ fun KartuTagihan(
                             .fillMaxWidth()
                             .border(
                                 1.dp,
-                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary, // Gunakan warna primary untuk border
                                 RoundedCornerShape(8.dp)
                             )
                             .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -1116,7 +1130,8 @@ fun KartuTagihan(
                             text = namaFile ?: "Tidak ada file",
                             modifier = Modifier.weight(1f),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         //icon tombol X untuk batal
                         IconButton(onClick = onBatalPilihFileClick, modifier = Modifier.size(24.dp)) {
@@ -1125,7 +1140,6 @@ fun KartuTagihan(
                     }
                 }
             }
-
             //tombol aksi tagihan
             //klo belum ada file, tampilin tombol "unggah bukti"
             //klo sudah ada file, tampilin tombol "kirim bukti"
@@ -1142,7 +1156,6 @@ fun KartuTagihan(
             ) {
                 val icon = if(namaFile == null) Icons.Default.Upload else Icons.Default.Send
                 val text = if(namaFile == null) "Unggah Bukti Pembayaran" else "Kirim Bukti Sekarang"
-
                 Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text, fontWeight = FontWeight.SemiBold)
@@ -1174,12 +1187,16 @@ fun KartuDetailPinjaman(detail: RincianPinjaman){
             text = "Rincian Pinjaman Anda",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = 8.dp),
+            color = MaterialTheme.colorScheme.onBackground
         )
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, Color.LightGray)
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), // Gunakan outline dari theme
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface // Gunakan warna dari theme
+            )
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -1194,8 +1211,6 @@ fun KartuDetailPinjaman(detail: RincianPinjaman){
     }
 }
 
-
-
 //UNTUK BAGIAN TAB HISTORI
 //data class untuk menampung data
 data class Angsuran(
@@ -1205,6 +1220,7 @@ data class Angsuran(
     val keterangan: String,
     val status: String  //"Lunas" atau "JatuhTempo"
 )
+
 //composable bagian laporan bulanan
 @Composable
 fun LaporanBulananSection(
@@ -1215,7 +1231,10 @@ fun LaporanBulananSection(
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface // Gunakan warna dari theme
+        )
     ){
         Column(
             modifier = Modifier.padding(16.dp),
@@ -1224,22 +1243,30 @@ fun LaporanBulananSection(
             Text(
                 text = "Laporan Bulan Ini",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            Divider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.outline // Gunakan outline dari theme
+            )
             InfoRow(label = "Total Simpanan", value = "Rp ${totalSimpanan.toFormattedString()}")
             InfoRow(label = "Sisa Pinjaman Aktif", value = "Rp ${totalPinjaman.toFormattedString()}")
             InfoRow(label = "Angsuran Dibayar", value = "Rp ${totalAngsuranBulanIni.toFormattedString()}")
         }
     }
 }
+
 //composable tiap item di daftar histori
 @Composable
 fun HistoriAngsuranItem(angsuran: Angsuran){
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, Color.LightGray)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), // Gunakan outline dari theme
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface // Gunakan warna dari theme
+        )
     ){
         Row(
             modifier = Modifier
@@ -1254,31 +1281,33 @@ fun HistoriAngsuranItem(angsuran: Angsuran){
                 Text(
                     text = angsuran.keterangan,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Tanggal: ${angsuran.tanggal}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant // Gunakan warna yang lebih pudar
                 )
             }
             Column(horizontalAlignment = Alignment.End){
                 Text(
                     text = "Rp ${angsuran.jumlah.toFormattedString()}",
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.primary, // Gunakan warna primary dari theme
                     fontSize = 16.sp
                 )
                 Text(
                     text = angsuran.status,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (angsuran.status == "Lunas") Color(0xFF008000) else Color.Red,
+                    color = if (angsuran.status == "Lunas") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error, // Gunakan warna primary untuk lunas, error untuk lainnya
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
                         .background(
-                            if (angsuran.status == "Lunas") Color(0xFFE8F5E9) else Color(
-                                0xFFFFEBEE
-                            )
+                            if (angsuran.status == "Lunas")
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) // Warna latar belakang pudar untuk status
+                            else
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.1f) // Warna latar belakang pudar untuk status
                         )
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 )
@@ -1286,6 +1315,7 @@ fun HistoriAngsuranItem(angsuran: Angsuran){
         }
     }
 }
+
 //buat helper di Composable dan Formatting
 @Composable
 fun InfoRow(label: String, value: String){
@@ -1293,17 +1323,25 @@ fun InfoRow(label: String, value: String){
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ){
-        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-        Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant // Gunakan warna yang lebih pudar
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
+
 fun Double.toFormattedString(): String{
     return "%,.0f".format(this).replace(',', '.')
 }
 
 //UNTUK BAGIAN TAB PROFIL
-
-
 @Preview(showBackground = true, name = "Dashboard Page", showSystemUi = true, device = Devices.PIXEL_5)
 @Composable
 fun DashboardPreview() {
