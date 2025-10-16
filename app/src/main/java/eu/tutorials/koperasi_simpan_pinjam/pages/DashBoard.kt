@@ -1,11 +1,15 @@
 package eu.tutorials.koperasi_simpan_pinjam.pages
 
+import android.Manifest
 import androidx.compose.foundation.Image
 import coil.compose.AsyncImage
 import androidx.compose.ui.draw.clip
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -81,6 +85,7 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -90,6 +95,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
 import kotlinx.coroutines.launch
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.core.content.FileProvider
+import java.io.File
 
 // Data class untuk item di drawer
 data class DrawerItem(val title: String, val icon: @Composable () -> Unit, val route: String)
@@ -267,18 +279,155 @@ fun CardSimpananDetail(jenis: String, saldo: Double) {
 }
 
 ////HALAMAN PINJAMAN KONTEN NASABAH - Theo & John
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PinjamanPage() {
     val context = LocalContext.current
     var namaFileDipilih by remember { mutableStateOf<String?>(null) }
     var uriDipilih by remember { mutableStateOf<Uri?>(null) }
+    val sheetState = rememberModalBottomSheetState()
+    var isSheetOpen by remember{mutableStateOf(false)}
 
+    var tempUri by remember { mutableStateOf<Uri?>(null) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val tempFile = File.createTempFile("camera_", ".jpg", context.cacheDir).apply {
+                createNewFile()
+            }
+            tempUri = FileProvider.getUriForFile(
+                context.applicationContext,
+                "${context.packageName}.provider",
+                tempFile
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, "Gagal membuat file sementara untuk kamera.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    //ngatur visibility sheets
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
+            isSheetOpen = false
             uriDipilih = uri
             namaFileDipilih = getFileName(context, uri)
+        }
+    }
+
+    //launcher kamera
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { isSuccess: Boolean ->
+        if(isSuccess && tempUri != null){
+            isSheetOpen = false
+            uriDipilih = tempUri
+            namaFileDipilih = "photo_${System.currentTimeMillis()}.jpg"
+        } else if (!isSuccess) {
+            //klo foot ga diambil
+            Toast.makeText(context, "Foto tidak diambil.", Toast.LENGTH_SHORT).show()
+        } else {
+            //tempUri belum siap
+            Toast.makeText(context, "File sementara belum siap. Coba lagi nanti.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    //launcher untuk ijin
+    val galleryPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if(isGranted){
+            imagePickerLauncher.launch("image/*")
+        } else{
+            Toast.makeText(context, "Izin akses galeri ditolak", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if(isGranted){
+            //pastiin tempUri sudah siap
+            tempUri?.let { uri ->
+                cameraLauncher.launch(uri)
+            } ?: Toast.makeText(context, "File sementara belum siap. Coba lagi nanti.", Toast.LENGTH_SHORT).show()
+        } else{
+            Toast.makeText(context, "Izin akses kamera ditolak", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val permissionToRequest = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
+        Manifest.permission.READ_MEDIA_IMAGES
+    } else{
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+
+    //launcher buat minta izin penyimpanan
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if(isGranted){
+            //klo ijin dikasih, langsung buka galeri
+            imagePickerLauncher.launch("image/*")
+        } else{
+            //kalau ditolak, tampilkan toast
+            Toast.makeText(context, "Izin akses media ditolak", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    //untuk modal
+    if (isSheetOpen) {
+        ModalBottomSheet(
+            sheetState = sheetState,
+            onDismissRequest = { isSheetOpen = false }
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Pilih Sumber Gambar", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 16.dp))
+                //opsi kamera
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            //cek izin kamera
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                tempUri?.let { uri ->
+                                    cameraLauncher.launch(uri)
+                                } ?: Toast.makeText(context, "File sementara belum siap. Coba lagi nanti.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                        }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.PhotoCamera, contentDescription = "Kamera")
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Ambil Foto dari Kamera", fontSize = 18.sp)
+                }
+                //opsi galeri
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val permissionToRequest = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
+                            //cek izin galeri
+                            if (ContextCompat.checkSelfPermission(context, permissionToRequest) == PackageManager.PERMISSION_GRANTED) {
+                                imagePickerLauncher.launch("image/*")
+                            } else {
+                                galleryPermissionLauncher.launch(permissionToRequest)
+                            }
+                        }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.PhotoLibrary, contentDescription = "Galeri")
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Pilih dari Galeri", fontSize = 18.sp)
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
         }
     }
 
@@ -319,7 +468,9 @@ fun PinjamanPage() {
             KartuTagihan(
                 tagihan = tagihanSaatIni,
                 namaFile = namaFileDipilih,
-                onUnggahBuktiClick = { imagePickerLauncher.launch("image/*") },
+                onUnggahBuktiClick = {
+                    isSheetOpen = true
+                },
                 onKirimBuktiClick = {
                     uriDipilih?.let { uri ->
                         println("Mulai mengunggah file: ${getFileName(context, uri)}")
@@ -446,6 +597,7 @@ data class PengajuanPinjaman(
 )
 
 ///HALAMAN HISTORI KONTEN NASABAH - John
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoriPage() {
     LazyColumn(
