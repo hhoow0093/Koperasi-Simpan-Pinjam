@@ -216,21 +216,14 @@ fun SimpananPage() {
     )
     //saldo simpanan pokok, wajib, sukarela
     val saldoPokok = 1000000.0
-    val saldoWajib = 300000.0
-    val saldoSukarela = 200000.0
+    val saldoWajib = 500000.0
+    val saldoSukarela = 750000.0
     LazyColumn (
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ){
-        item{
-            Text(
-                text = "Bagian Theo disini",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
         // kartu 3 jenis simpanan
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
