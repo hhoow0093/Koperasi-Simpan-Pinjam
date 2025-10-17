@@ -27,8 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import eu.tutorials.koperasi_simpan_pinjam.API.LoginRequest
-import eu.tutorials.koperasi_simpan_pinjam.API.RetrofitClient
+import eu.tutorials.koperasi_simpan_pinjam.data.API.LoginRequest
+import eu.tutorials.koperasi_simpan_pinjam.data.API.RetrofitClient
 import eu.tutorials.koperasi_simpan_pinjam.Martel
 import eu.tutorials.koperasi_simpan_pinjam.R
 import eu.tutorials.koperasi_simpan_pinjam.fragments.ButtonFilled
@@ -113,9 +113,16 @@ fun LoginPage(navController: NavHostController, modifier: Modifier = Modifier){
                             val response = RetrofitClient.instance.loginUser(request)
 
                             if (response.isSuccessful) {
+                                Log.d("RESPONSE_TAG", response.body().toString())
                                 val message = response.body()?.message ?: "No message"
-                                Toast.makeText(context, "✅ $message", Toast.LENGTH_LONG).show()
-                                navController.navigate("dashboard")
+                                val isAdmin = response.body()?.isAdmin?: false
+                                if(isAdmin){
+                                    Toast.makeText(context, "✅ $message", Toast.LENGTH_LONG).show()
+                                    navController.navigate("dashboardAdmin")
+                                }else{
+                                    Toast.makeText(context, "✅ $message", Toast.LENGTH_LONG).show()
+                                    navController.navigate("dashboard")
+                                }
                             } else {
                                 val errorBody = response.errorBody()?.string()
                                 val message = errorBody?.let {

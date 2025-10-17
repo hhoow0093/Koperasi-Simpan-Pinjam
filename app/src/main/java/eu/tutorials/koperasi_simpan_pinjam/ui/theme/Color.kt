@@ -11,3 +11,6 @@ val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
 val DeepBlue = Color(0xFF1D336A)
+
+val white = Color(0xFFFFFFFF)
+val SoftLavender = Color(0xFFFAF8FF)

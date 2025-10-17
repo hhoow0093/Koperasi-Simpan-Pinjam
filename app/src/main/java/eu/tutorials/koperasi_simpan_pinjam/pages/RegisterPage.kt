@@ -28,8 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import eu.tutorials.koperasi_simpan_pinjam.API.RegisterRequest
-import eu.tutorials.koperasi_simpan_pinjam.API.RetrofitClient
+import eu.tutorials.koperasi_simpan_pinjam.data.API.RegisterRequest
+import eu.tutorials.koperasi_simpan_pinjam.data.API.RetrofitClient
 import eu.tutorials.koperasi_simpan_pinjam.Martel
 import eu.tutorials.koperasi_simpan_pinjam.R
 import eu.tutorials.koperasi_simpan_pinjam.fragments.ButtonFilled
