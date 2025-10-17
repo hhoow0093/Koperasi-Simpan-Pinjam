@@ -1,6 +1,8 @@
 package eu.tutorials.koperasi_simpan_pinjam.pages
 
+import android.os.Build
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -169,6 +171,7 @@ fun RegisterPage(navController: NavHostController, modifier: Modifier = Modifier
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true, name = "Register page", showSystemUi = true, device = Devices.PIXEL_5)
 @Composable
 fun RegisterPreview() {
