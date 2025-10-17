@@ -37,6 +37,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -711,7 +713,7 @@ data class ProfilNasabah(
 
 //profil page
 @Composable
-fun ProfilPage() {
+fun ProfilPage(navController: NavHostController) {
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -725,54 +727,117 @@ fun ProfilPage() {
             poin = 120
         )
     }
-    Column(
+
+    //kontrol dialog konfirmasi logout
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(text = "Konfirmasi Logout")
+            },
+            text = {
+                Text(text = "Apakah Anda yakin ingin keluar dari akun Anda?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        navController.navigate("register") {
+                            popUpTo(0) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
+                        }
+                        println("Proses Logout dan navigasi ke halaman Register...")
+                    }
+                ) {
+                    Text("Ya, Keluar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                    }
+                ) {
+                    Text("Batal")
+                }
+            }
+        )
+    }
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background) // Gunakan background dari theme
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // foto profil
-        Card(
-            shape = CircleShape,
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape) // Gunakan outline dari theme
-        ) {
-            AsyncImage(
-                model = imageUri ?: "https://via.placeholder.com/150",
-                contentDescription = "Foto Profil",
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = { launcher.launch("image/*") }) {
-            Icon(Icons.Default.Upload, contentDescription = "Upload")
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(text = "Ubah Foto Profil")
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        // detail profil
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface) // Gunakan warna dari theme
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Detail Pengguna",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary // Gunakan warna primary dari theme
-                )
+        item {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Card(
+                    shape = CircleShape,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                ) {
+                    AsyncImage(
+                        model = imageUri ?: "https://via.placeholder.com/150",
+                        contentDescription = "Foto Profil",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
                 Spacer(modifier = Modifier.height(8.dp))
-                ProfilInfoRow(label = "Nama Lengkap", value = dataProfil.nama)
-                ProfilInfoRow(label = "ID Anggota", value = dataProfil.idAnggota)
-                ProfilInfoRow(label = "Tanggal Gabung", value = dataProfil.tanggalGabung)
-                ProfilInfoRow(label = "Status Keanggotaan", value = dataProfil.statusKeanggotaan)
-                ProfilInfoRow(label = "Total Poin", value = "${dataProfil.poin} poin")
+                Button(onClick = { launcher.launch("image/*") }) {
+                    Icon(Icons.Default.Upload, contentDescription = "Upload")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Ubah Foto Profil")
+                }
+            }
+        }
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Detail Pengguna",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    ProfilInfoRow(label = "Nama Lengkap", value = dataProfil.nama)
+                    ProfilInfoRow(label = "ID Anggota", value = dataProfil.idAnggota)
+                    ProfilInfoRow(label = "Tanggal Gabung", value = dataProfil.tanggalGabung)
+                    ProfilInfoRow(label = "Status Keanggotaan", value = dataProfil.statusKeanggotaan)
+                    ProfilInfoRow(label = "Total Poin", value = "${dataProfil.poin} poin")
+                }
+            }
+        }
+        //tombol logout
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedButton(
+                onClick = {
+                    showLogoutDialog = true
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+            ) {
+                Icon(Icons.Default.Logout, contentDescription = "Logout")
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Logout")
             }
         }
     }
@@ -884,7 +949,7 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
             composable("simpanan") { SimpananPage() }
             composable("pinjaman") { PinjamanPage() }
             composable("histori") { HistoriPage() }
-            composable("profil") { ProfilPage() }
+            composable("profil") { ProfilPage(navController = navController) }
         }
     }
 }

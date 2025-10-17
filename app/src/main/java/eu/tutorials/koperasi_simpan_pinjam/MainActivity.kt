@@ -60,9 +60,12 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import eu.tutorials.koperasi_simpan_pinjam.navigation.AppNavHost
 import androidx.navigation.compose.rememberNavController
 import eu.tutorials.koperasi_simpan_pinjam.pages.AuthenticationPage
+import eu.tutorials.koperasi_simpan_pinjam.pages.DashBoard
 import eu.tutorials.koperasi_simpan_pinjam.pages.LoginPage
 import eu.tutorials.koperasi_simpan_pinjam.utils.createNotificationChannels
 
