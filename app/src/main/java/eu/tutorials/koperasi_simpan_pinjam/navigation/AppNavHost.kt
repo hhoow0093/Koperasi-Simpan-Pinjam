@@ -25,17 +25,12 @@ import eu.tutorials.koperasi_simpan_pinjam.pages.admin.ViewLoansTransactionHisto
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AppNavHost(navController: NavHostController){
-    NavHost(navController = navController, startDestination = "register"){
-        composable("dashboard") { DashBoard(navController) }
-        composable("login") { LoginPage(navController) }
-        composable("register") { RegisterPage(navController) }
-        composable("authentication") { AuthenticationPage(navController) }
-    NavHost(navController = navController, startDestination = "authentication"){
-        composable(route="dashboard") { DashBoard(navController) }
-        composable(route="login") { LoginPage(navController) }
-        composable(route="register") { RegisterPage(navController) }
-        composable(route="authentication") { AuthenticationPage(navController) }
+fun AppNavHost(navController: NavHostController) {
+    NavHost(navController = navController, startDestination = "authentication") {
+        composable(route = "dashboard") { DashBoard(navController) }
+        composable(route = "login") { LoginPage(navController) }
+        composable(route = "register") { RegisterPage(navController) }
+        composable(route = "authentication") { AuthenticationPage(navController) }
 
         // admin routes
         composable(route = "dashboardAdmin") {
@@ -45,24 +40,29 @@ fun AppNavHost(navController: NavHostController){
             )
             DashboardAdminn(navController = navController, viewModel = viewModel)
         }
-        composable (route = "manageuser"){
+        composable(route = "manageuser") {
             val repository = UserRepository(RetrofitClient.instance)
             val viewModel: ManageUserAdminViewModel = viewModel(
                 factory = ManageUserAdminViewModelFactory(repository)
             )
             ManageUserPage(navController, viewModel = viewModel)
         }
-        composable (route = "AdminTransaction"){
+        composable(route = "AdminTransaction") {
             AdminTransactionPage(navController = navController)
         }
-        composable (route = "AdminUserSaving"){
+        composable(route = "AdminUserSaving") {
             AdminUserSavingPage(navController = navController)
         }
-        composable (route = "AdminUserLoans"){ AdminUserLoansPage(navController = navController)}
-        composable (route = "ViewLoansTransactionHistory"){ ViewLoansTransactionHistoryPage(navController = navController) }
+        composable(route = "AdminUserLoans") { AdminUserLoansPage(navController = navController) }
+        composable(route = "ViewLoansTransactionHistory") {
+            ViewLoansTransactionHistoryPage(
+                navController = navController
+            )
+        }
         composable(route = "AdminReport") { AdminReportPage(navController = navController) }
-        composable ( route= "AdminManageMoney" ){ ManageMoneyPage(navController = navController) }
+        composable(route = "AdminManageMoney") { ManageMoneyPage(navController = navController) }
 
 
     }
 }
+
