@@ -205,7 +205,7 @@ fun HomePage(navController: NavHostController) {
 @Composable
 fun SimpananPage() {
     //hanya data contoh sebelum masok ke DB
-    val saldoSaatIni = 1500000.0
+    val saldoSaatIni = 2250000.0
     val daftarTransaksi = listOf(
         TransaksiSimpanan("S001", "05 Okt 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT),
         TransaksiSimpanan("S002", "01 Okt 2025", "Tarik Tunai", 250000.0, TipeTransaksi.DEBIT),
