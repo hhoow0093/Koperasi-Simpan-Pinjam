@@ -1,6 +1,8 @@
 package eu.tutorials.koperasi_simpan_pinjam.pages
 
+import android.os.Build
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,8 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import eu.tutorials.koperasi_simpan_pinjam.API.RegisterRequest
-import eu.tutorials.koperasi_simpan_pinjam.API.RetrofitClient
+import eu.tutorials.koperasi_simpan_pinjam.data.API.RegisterRequest
+import eu.tutorials.koperasi_simpan_pinjam.data.API.RetrofitClient
 import eu.tutorials.koperasi_simpan_pinjam.Martel
 import eu.tutorials.koperasi_simpan_pinjam.R
 import eu.tutorials.koperasi_simpan_pinjam.fragments.ButtonFilled
@@ -169,6 +171,7 @@ fun RegisterPage(navController: NavHostController, modifier: Modifier = Modifier
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true, name = "Register page", showSystemUi = true, device = Devices.PIXEL_5)
 @Composable
 fun RegisterPreview() {
