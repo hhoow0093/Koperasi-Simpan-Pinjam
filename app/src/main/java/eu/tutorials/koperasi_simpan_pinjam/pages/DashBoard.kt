@@ -13,16 +13,20 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,6 +35,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,16 +49,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.intl.Locale
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.lerp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -64,10 +77,14 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.DeepBlue
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
+import eu.tutorials.koperasi_simpan_pinjam.ui.theme.Pink80
+import eu.tutorials.koperasi_simpan_pinjam.ui.theme.PurpleGrey80
 import eu.tutorials.koperasi_simpan_pinjam.utils.PENGAJUAN_CHANNEL_ID
 import eu.tutorials.koperasi_simpan_pinjam.utils.showNotification
 import kotlinx.coroutines.launch
 import java.io.File
+import java.text.DecimalFormat
+import kotlin.math.absoluteValue
 import kotlin.text.format
 
 // Data class untuk item di bottom bar
@@ -76,7 +93,8 @@ data class BottomBarItem(val label: String, val icon: ImageVector, val route: St
 ///HALAMAN HOMEPAGE KONTEN NASABAH - Theo & John
 @Composable
 fun HomePage(navController: NavHostController) {
-    //data contoh, sebelum masuk DB
+    val namaNasabah = "Nama" //nanti ambil dr database
+    val totalSaldoSimpanan = 2250000.0 //nanti ambil dari database
     val pinjamanNasabah = PinjamanAktif(
         pokok = 5000000.0,
         bunga = 50000.0,
@@ -84,89 +102,47 @@ fun HomePage(navController: NavHostController) {
         sisaAngsuran = 9,
         totalAngsuran = 10
     )
-    //supaya bisa scroll pakai lazycolumn
-    LazyColumn (
+
+    //pakai lazycolumn
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
+        contentPadding = PaddingValues(16.dp), //padding smua konten
+        verticalArrangement = Arrangement.spacedBy(20.dp) //jarak antar itemnya
     ){
+        //kartu saldo utama
         item {
-            Text(
-                text = "Selamat Datang, Nasabah!",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(bottom = 16.dp)
+            KartuSaldoUtama(
+                namaNasabah = namaNasabah,
+                totalSaldo = totalSaldoSimpanan
             )
         }
+        //rincian pinjaman aktif (kalo ada)
         item {
-            // Bagian untuk menampilkan saldo simpanan nasabah (fitur tambahan)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-            ) {
-                Text(
-                    text = "Saldo Simpanan",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface // Gunakan warna dari theme
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp) // Tambahkan elevasi
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Simpanan Pokok: Rp 1.000.000",
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            "Simpanan Wajib: Rp 500.000",
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            "Simpanan Sukarela: Rp 750.000",
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            color = MaterialTheme.colorScheme.outline // Gunakan warna outline dari theme
-                        )
-                        Text(
-                            "Total Saldo: Rp 2.250.000",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
-        }
-        item {
-            //panggil composablekhusus untuk menampilkan kartu pinjaman
+            Text(
+                text = "Pinjaman Aktif",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
             KartuPinjamanAktif(dataPinjaman = pinjamanNasabah)
         }
+        //menu cepat
         item {
-            Spacer(
-                modifier = Modifier.fillMaxWidth()
-            )
             Text(
                 text = "Menu Cepat",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.padding(bottom = 8.dp)
             )
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ){
+            ) {
+                //tombol Bayar Cicilan
                 Button(
                     onClick = {
-                        /*TODO: Navigasi ke halaman pinjaman buat bayar*/
                         navController.navigate("pinjaman") {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
@@ -175,14 +151,16 @@ fun HomePage(navController: NavHostController) {
                             restoreState = true
                         }
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
                 ) {
-                    Icon(Icons.Default.Payment, contentDescription = null, modifier = Modifier.padding(8.dp))
-                    Text("Bayar Cicilan")
+                    Icon(Icons.Default.Payment, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Bayar")
                 }
                 OutlinedButton(
                     onClick = {
-                        /*TODO: navigasi ke halaman pinjam*/
                         navController.navigate("pinjaman") {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
@@ -191,10 +169,13 @@ fun HomePage(navController: NavHostController) {
                             restoreState = true
                         }
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
                 ) {
-                    Icon(Icons.Default.AddCard, contentDescription = null, modifier = Modifier.padding(end=8.dp))
-                    Text("Ajukan Pinjaman")
+                    Icon(Icons.Default.AddCard, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Ajukan")
                 }
             }
         }
@@ -205,7 +186,6 @@ fun HomePage(navController: NavHostController) {
 @Composable
 fun SimpananPage() {
     //hanya data contoh sebelum masok ke DB
-    val saldoSaatIni = 2250000.0
     val daftarTransaksi = listOf(
         TransaksiSimpanan("S001", "05 Okt 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT),
         TransaksiSimpanan("S002", "01 Okt 2025", "Tarik Tunai", 250000.0, TipeTransaksi.DEBIT),
@@ -214,67 +194,140 @@ fun SimpananPage() {
         TransaksiSimpanan("S005", "20 Ags 2025", "Biaya Administrasi", 5000.0, TipeTransaksi.DEBIT),
         TransaksiSimpanan("S006", "05 Ags 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT)
     )
-    //saldo simpanan pokok, wajib, sukarela
-    val saldoPokok = 1000000.0
-    val saldoWajib = 500000.0
-    val saldoSukarela = 750000.0
+
+    val daftarJenisSimpanan = remember {
+        listOf(
+            JenisSimpanan("Simpanan Pokok", 1000000.0, Icons.Filled.Shield, Color(0xFF1D336A)),
+            JenisSimpanan("Simpanan Wajib", 500000.0, Icons.Filled.Event, Color(0xFF625b71)),
+            JenisSimpanan("Simpanan Sukarela", 750000.0, Icons.Filled.Favorite, Color(0xFF7D5260))
+        )
+    }
+    val totalSaldo = daftarJenisSimpanan.sumOf{it.saldo}
+    val pagerState = rememberPagerState(pageCount = {daftarJenisSimpanan.size})
     LazyColumn (
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ){
-        // kartu 3 jenis simpanan
+        //judul halaman
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                CardSimpananDetail("Simpanan Pokok", saldoPokok)
-                CardSimpananDetail("Simpanan Wajib", saldoWajib)
-                CardSimpananDetail("Simpanan Sukarela", saldoSukarela)
+            Text(
+                text = "Rincian Simpanan",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp)
+            )
+        }
+
+        //carousel 3 jenis simpanan
+        item{
+            HorizontalPager(
+                state = pagerState,
+                contentPadding = PaddingValues(horizontal = 32.dp), //kasih padding biar kartunya bisa keliatan
+                pageSpacing = 16.dp
+            ) { page ->
+                //carousel 3 jenis simpanan
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1.7f)
+                        .graphicsLayer { //animasi saat digeser
+                            val pageOffset = (
+                                    (pagerState.currentPage - page) + pagerState
+                                        .currentPageOffsetFraction
+                                    ).absoluteValue
+                            alpha = lerp(
+                                start = 0.5f,
+                                stop = 1f,
+                                fraction = 1f - pageOffset.coerceIn(0f, 1f)
+                            )
+                            scaleY = lerp(
+                                start = 0.8f,
+                                stop = 1f,
+                                fraction = 1f - pageOffset.coerceIn(0f, 1f)
+                            )
+                        },
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(8.dp)
+                )
+                {
+                    val simpanan = daftarJenisSimpanan[page]
+                    //box gradasi
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        simpanan.warna,
+                                        simpanan.warna.copy(alpha = 0.7f)
+                                    )
+                                )
+                            )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    simpanan.ikon,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = simpanan.nama,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White
+                                )
+                            }
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    "Saldo",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.White.copy(alpha = 0.8f)
+                                )
+                                Text(
+                                    text = "Rp ${simpanan.saldo.toFormattedString()}",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
-        //bagian kartu saldo total
-        item {
-            KartuSaldoTotal(saldo = saldoSaatIni)
-        }
+
         //bagian judul untuk daftar mutasi
         item {
             Text(
                 text = "Mutasi Rekening",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top=8.dp),
-                color = MaterialTheme.colorScheme.onBackground
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
-        //bagian daftar transaksi
-        items(daftarTransaksi){transaksi ->
-            ItemTransaksi(transaksi=transaksi)
-        }
-    }
-}
 
-// Tambahan komponen baru untuk fitur 3
-@Composable
-fun CardSimpananDetail(jenis: String, saldo: Double) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline) // Gunakan outline dari theme
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                jenis,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                "Rp ${saldo.toFormattedString()}",
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+        //mutasi
+        items(daftarTransaksi) { transaksi ->
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                ItemTransaksi(transaksi = transaksi)
+            }
+        }
+        //kasih spacer dibwh
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -364,19 +417,6 @@ fun PinjamanPage() {
         Manifest.permission.READ_MEDIA_IMAGES
     } else{
         Manifest.permission.READ_EXTERNAL_STORAGE
-    }
-
-    //launcher buat minta izin penyimpanan
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if(isGranted){
-            //klo ijin dikasih, langsung buka galeri
-            imagePickerLauncher.launch("image/*")
-        } else{
-            //kalau ditolak, tampilkan toast
-            Toast.makeText(context, "Izin akses media ditolak", Toast.LENGTH_SHORT).show()
-        }
     }
 
     //untuk modal
@@ -658,39 +698,79 @@ data class PengajuanPinjaman(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoriPage() {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp) //jarak antar item
-    ){
-        //laporan bulanan
-        item {
-            LaporanBulananSection(
-                totalSimpanan = 1500000.0,
-                totalPinjaman = 5000000.0,
-                totalAngsuranBulanIni = 500000.0
-            )
-        }
-        //bagian daftar histori pembayaran
-        item {
-            Text(
-                text = "Histori Pembayaran Angsuran",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
-        //contoh data aja
-        val daftarAngsuran = listOf(
-            Angsuran("A001", "10 Okt 2025", 500000.0, "Angsuran 3", "Lunas"),
-            Angsuran("A002", "11 Sep 2025", 500000.0, "Angsuran 2", "Lunas"),
-            Angsuran("A003", "14 Ags 2025", 500000.0, "Angsuran 1", "Lunas"),
-            Angsuran("A004", "11 Jul 2025", 250000.0, "Bayar Denda", "Lunas"),
+    // contoh sebelum msk db
+    val historiSimpanan = remember {
+        listOf(
+            ItemHistori("S01", "05 Okt 2025", 100000.0, "Simpanan Wajib", TipeHistori.SIMPANAN_MASUK),
+            ItemHistori("S02", "01 Okt 2025", 250000.0, "Tarik Tunai", TipeHistori.SIMPANAN_KELUAR),
+            ItemHistori("S03", "15 Sep 2025", 50000.0, "Simpanan Sukarela", TipeHistori.SIMPANAN_MASUK),
         )
-        //nampilin tiap item histori dengan items()
-        items(daftarAngsuran){  angsuran->
-            HistoriAngsuranItem(angsuran=angsuran)
+    }
+    val historiPinjaman = remember {
+        listOf(
+            ItemHistori("P01", "10 Okt 2025", 500000.0, "Angsuran ke-3", TipeHistori.BAYAR_ANGSURAN),
+            ItemHistori("P02", "11 Sep 2025", 500000.0, "Angsuran ke-2", TipeHistori.BAYAR_ANGSURAN),
+            ItemHistori("D01", "11 Jul 2025", 25000.0, "Denda Keterlambatan", TipeHistori.BAYAR_DENDA)
+        )
+    }
+
+    //kontrol tab aktif
+    var tabIndex by remember { mutableStateOf(0) }
+    val tabs = listOf("Semua", "Simpanan", "Pinjaman")
+
+    Column(modifier = Modifier.fillMaxSize()) {
+
+        //judul
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Histori Transaksi",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TabRow(
+                selectedTabIndex = tabIndex,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = tabIndex == index,
+                        onClick = { tabIndex = index },
+                        text = { Text(text = title) }
+                    )
+                }
+            }
+        }
+
+        //menentukan daftar mana yg tampil
+        val daftarTampil = when (tabIndex) {
+            1 -> historiSimpanan
+            2 -> historiPinjaman
+            //gabungkan kedua list dan urutkan berdasarkan tanggal
+            else -> (historiSimpanan + historiPinjaman).sortedByDescending { it.tanggal }
+        }
+        if (daftarTampil.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Tidak ada histori untuk ditampilkan.")
+            }
+        } else {
+            // Jika ada data, tampilkan dalam LazyColumn format timeline.
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)
+            ) {
+                itemsIndexed(daftarTampil) { index, item ->
+                    HistoriTimelineItem(
+                        item = item,
+                        isLastItem = index == daftarTampil.lastIndex
+                    )
+                }
+            }
         }
     }
 }
@@ -949,6 +1029,101 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
 
 ///SEMUA BANTUAN DAN KOMPONEN-KOMPONEN TIAP HALAMAN NASABAH:
 //UNTUK BAGIAN TAB HOME
+//untuk kartu saldo total
+@Composable
+fun KartuSaldoUtama(
+    namaNasabah: String,
+    totalSaldo: Double,
+    modifier: Modifier = Modifier
+) {
+    var saldoTerlihat by remember { mutableStateOf(true) }
+
+    val saldoAnimasi by animateFloatAsState(
+        targetValue = if (saldoTerlihat) totalSaldo.toFloat() else 0f,
+        animationSpec = tween(durationMillis = 1000),
+        label = "SaldoAnimation"
+    )
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(200.dp),//kartu lebih tinggi
+        shape = RoundedCornerShape(24.dp),//sudut lebih melengkung
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                        )
+                    )
+                )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                //sapaan
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Halo, $namaNasabah!",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+                    IconButton(onClick = { saldoTerlihat = !saldoTerlihat }) {
+                        Icon(
+                            imageVector = if (saldoTerlihat) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = "Sembunyikan/Tampilkan Saldo",
+                            tint = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        text = "Total Saldo Simpanan",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+
+                    if (saldoTerlihat) {
+                        //format angka ribuan
+                        val formatter = DecimalFormat("#,###")
+                        Text(
+                            text = "Rp ${
+                                formatter.format(saldoAnimasi.toLong()).replace(',', '.')
+                            }",
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1
+                        )
+                    } else {
+                        //placeholder kalau saldo disembunyikan
+                        Text(
+                            text = "Rp ••••••••",
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 //data class untuk Pinjaman aktif
 data class PinjamanAktif(
     val pokok: Double,
@@ -1054,37 +1229,12 @@ data class TransaksiSimpanan(
     val tipe: TipeTransaksi //kredit(masuk) atau debit(keluar)
 )
 
-//composable kartu saldo total
-@Composable
-fun KartuSaldoTotal(saldo: Double){
-    Card (
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(6.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer // Gunakan warna dari theme
-        )
-    ){
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Text(
-                text = "Total Saldo Simpanan Anda",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) // Gunakan warna dari theme
-            )
-            Text(
-                text = "Rp ${saldo.toFormattedString()}",
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer // Gunakan warna dari theme
-            )
-        }
-    }
-}
+data class JenisSimpanan(
+    val nama: String,
+    val saldo: Double,
+    val ikon: ImageVector,
+    val warna: Color
+)
 
 //composable tiap transaksi
 @Composable
@@ -1321,103 +1471,100 @@ fun KartuDetailPinjaman(detail: RincianPinjaman){
 
 //UNTUK BAGIAN TAB HISTORI
 //data class untuk menampung data
-data class Angsuran(
+enum class TipeHistori{
+    SIMPANAN_MASUK,
+    SIMPANAN_KELUAR,
+    BAYAR_ANGSURAN,
+    BAYAR_DENDA
+}
+data class ItemHistori(
     val id: String,
     val tanggal: String,
     val jumlah: Double,
     val keterangan: String,
-    val status: String  //"Lunas" atau "JatuhTempo"
+    val tipe: TipeHistori
 )
 
-//composable bagian laporan bulanan
+//buat timeline histori
 @Composable
-fun LaporanBulananSection(
-    totalSimpanan: Double,
-    totalPinjaman: Double,
-    totalAngsuranBulanIni: Double
+fun HistoriTimelineItem(
+    item: ItemHistori,
+    isLastItem: Boolean
 ){
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface // Gunakan warna dari theme
-        )
-    ){
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ){
-            Text(
-                text = "Laporan Bulan Ini",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Divider(
-                modifier = Modifier.padding(vertical = 8.dp),
-                color = MaterialTheme.colorScheme.outline // Gunakan outline dari theme
-            )
-            InfoRow(label = "Total Simpanan", value = "Rp ${totalSimpanan.toFormattedString()}")
-            InfoRow(label = "Sisa Pinjaman Aktif", value = "Rp ${totalPinjaman.toFormattedString()}")
-            InfoRow(label = "Angsuran Dibayar", value = "Rp ${totalAngsuranBulanIni.toFormattedString()}")
-        }
+    val (ikon, warna) = when(item.tipe){
+        TipeHistori.SIMPANAN_MASUK -> Icons.Filled.AccountBalanceWallet to MaterialTheme.colorScheme.primary
+        TipeHistori.SIMPANAN_KELUAR -> Icons.Filled.Upload to MaterialTheme.colorScheme.tertiary
+        TipeHistori.BAYAR_ANGSURAN -> Icons.Filled.ReceiptLong to Color(0xFF2E7D32)
+        TipeHistori.BAYAR_DENDA -> Icons.Filled.Warning to MaterialTheme.colorScheme.error
     }
-}
-
-//composable tiap item di daftar histori
-@Composable
-fun HistoriAngsuranItem(angsuran: Angsuran){
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), // Gunakan outline dari theme
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface // Gunakan warna dari theme
-        )
-    ){
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ){
-            Column(
-                modifier = Modifier.weight(1f)
+    val prefix = if(item.tipe == TipeHistori.SIMPANAN_KELUAR) "- " else "+ "
+    Row(modifier = Modifier.fillMaxWidth()){
+        Column(horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 8.dp)
+        ) {
+            //ikon
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(warna.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
             ){
-                Text(
-                    text = angsuran.keterangan,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Tanggal: ${angsuran.tanggal}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant // Gunakan warna yang lebih pudar
+                Icon(
+                    imageVector = ikon,
+                    contentDescription = item.keterangan,
+                    tint = warna,
+                    modifier = Modifier.size(24.dp)
                 )
             }
-            Column(horizontalAlignment = Alignment.End){
+            //garis
+            if(!isLastItem){
+                Canvas(modifier = Modifier
+                    .weight(1f)
+                    .width(2.dp)){
+                    drawLine(
+                        color = Color.LightGray,
+                        start = Offset(size.width / 2, 0f),
+                        end = Offset(size.width / 2, size.height),
+                        strokeWidth = 2.dp.toPx()
+                    )
+                }
+            }
+        }
+        Card(
+            modifier = Modifier
+                .padding(bottom = 16.dp, end = 8.dp)
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme
+                .colorScheme.surface),
+            elevation = CardDefaults.cardElevation(2.dp)
+        ){
+            Row(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ){
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.keterangan,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = item.tanggal,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Text(
-                    text = "Rp ${angsuran.jumlah.toFormattedString()}",
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary, // Gunakan warna primary dari theme
-                    fontSize = 16.sp
-                )
-                Text(
-                    text = angsuran.status,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (angsuran.status == "Lunas") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error, // Gunakan warna primary untuk lunas, error untuk lainnya
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(
-                            if (angsuran.status == "Lunas")
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) // Warna latar belakang pudar untuk status
-                            else
-                                MaterialTheme.colorScheme.error.copy(alpha = 0.1f) // Warna latar belakang pudar untuk status
-                        )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                    text= "$prefix${item.jumlah.toFormattedString()}",
+                    fontWeight = FontWeight.SemiBold,
+                    color = warna,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(start = 8.dp)
                 )
             }
         }
