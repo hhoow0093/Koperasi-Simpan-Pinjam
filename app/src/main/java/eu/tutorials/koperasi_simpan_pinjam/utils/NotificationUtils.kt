@@ -1,9 +1,13 @@
 package eu.tutorials.koperasi_simpan_pinjam.utils
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
+import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import eu.tutorials.koperasi_simpan_pinjam.R
 
@@ -37,21 +41,20 @@ fun createNotificationChannels(context: Context) {
 }
 
 //untuk menampilkan notif
-fun showNotification(
-    context: Context,
-    channelId: String,
-    notificationId: Int,
-    title: String,
-    content: String
-) {
-    val notificationManager =
-        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+fun showNotification(context: Context, channelId: String, notificationId: Int, title: String, content: String) {
+    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+        Toast.makeText(context, "Izin notifikasi belum diberikan.", Toast.LENGTH_SHORT).show()
+        return
+    }
 
     val builder = NotificationCompat.Builder(context, channelId)
         .setSmallIcon(R.drawable.logo_kop)
         .setContentTitle(title)
         .setContentText(content)
-        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setStyle(NotificationCompat.BigTextStyle().bigText(content))
+        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         .setAutoCancel(true)
 
     notificationManager.notify(notificationId, builder.build())

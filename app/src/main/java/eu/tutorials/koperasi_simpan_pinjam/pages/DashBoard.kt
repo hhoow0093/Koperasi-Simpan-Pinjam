@@ -5,6 +5,7 @@ import android.Manifest
 import android.R
 import android.content.Context
 import android.content.pm.PackageManager
+import android.icu.text.NumberFormat
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
@@ -43,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -60,8 +62,11 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.DeepBlue
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
+import eu.tutorials.koperasi_simpan_pinjam.utils.PENGAJUAN_CHANNEL_ID
+import eu.tutorials.koperasi_simpan_pinjam.utils.showNotification
 import kotlinx.coroutines.launch
 import java.io.File
+import kotlin.text.format
 
 // Data class untuk item di bottom bar
 data class BottomBarItem(val label: String, val icon: ImageVector, val route: String)
@@ -284,6 +289,8 @@ fun CardSimpananDetail(jenis: String, saldo: Double) {
 @Composable
 fun PinjamanPage() {
     val context = LocalContext.current
+
+
     var namaFileDipilih by remember { mutableStateOf<String?>(null) }
     var uriDipilih by remember { mutableStateOf<Uri?>(null) }
     val sheetState = rememberModalBottomSheetState()
@@ -397,10 +404,18 @@ fun PinjamanPage() {
                         .fillMaxWidth()
                         .clickable {
                             //cek izin kamera
-                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                            if (ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.CAMERA
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) {
                                 tempUri?.let { uri ->
                                     cameraLauncher.launch(uri)
-                                } ?: Toast.makeText(context, "File sementara belum siap. Coba lagi nanti.", Toast.LENGTH_SHORT).show()
+                                } ?: Toast.makeText(
+                                    context,
+                                    "File sementara belum siap. Coba lagi nanti.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             } else {
                                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                             }
@@ -425,9 +440,14 @@ fun PinjamanPage() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            val permissionToRequest = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
+                            val permissionToRequest =
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
                             //cek izin galeri
-                            if (ContextCompat.checkSelfPermission(context, permissionToRequest) == PackageManager.PERMISSION_GRANTED) {
+                            if (ContextCompat.checkSelfPermission(
+                                    context,
+                                    permissionToRequest
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) {
                                 imagePickerLauncher.launch("image/*")
                             } else {
                                 galleryPermissionLauncher.launch(permissionToRequest)
@@ -551,6 +571,20 @@ fun PinjamanPage() {
                                     status = "Proses"
                                 )
                             )
+                            val formattedJumlah = NumberFormat.getCurrencyInstance(
+                                java.util.Locale(
+                                    "in",
+                                    "ID"
+                                )
+                            ).format(jumlahPinjamanBaru.toDouble())
+                            showNotification(
+                                context = context,
+                                channelId = PENGAJUAN_CHANNEL_ID,
+                                notificationId = System.currentTimeMillis().toInt(), // ID unik agar notifikasi tidak menimpa satu sama lain
+                                title = "Pengajuan Pinjaman Terkirim",
+                                content = "Pengajuan Anda sebesar $formattedJumlah sedang dalam proses review oleh tim kami."
+                            )
+
                             jumlahPinjamanBaru = ""
                             tenorPinjaman = 6f
                         }
@@ -770,6 +804,25 @@ fun ProfilInfoRow(label: String, value: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            Toast.makeText(context, "Izin notifikasi diberikan.", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Anda tidak akan menerima notifikasi penting.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
     val dashboardNavController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
