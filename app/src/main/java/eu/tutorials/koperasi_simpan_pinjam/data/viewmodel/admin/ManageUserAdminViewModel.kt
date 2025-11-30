@@ -1,4 +1,4 @@
-package eu.tutorials.koperasi_simpan_pinjam.data.viewmodel
+package eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import eu.tutorials.koperasi_simpan_pinjam.data.API.User
-import eu.tutorials.koperasi_simpan_pinjam.data.repository.UserRepository
+import eu.tutorials.koperasi_simpan_pinjam.data.repository.admin.UserRepository
 
 class ManageUserAdminViewModel(private val repository: UserRepository) : ViewModel() {
     private val _userList = MutableStateFlow<List<User>>(emptyList())

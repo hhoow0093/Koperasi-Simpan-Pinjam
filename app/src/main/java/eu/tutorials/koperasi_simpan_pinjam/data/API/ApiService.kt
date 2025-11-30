@@ -68,5 +68,6 @@ interface ApiService {
 
 data class ResponseMessage(
     val message: String,
-    val isAdmin: Boolean
+    val isAdmin: Boolean,
+    val user_id: String
 )

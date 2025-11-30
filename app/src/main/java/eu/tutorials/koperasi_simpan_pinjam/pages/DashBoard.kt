@@ -40,6 +40,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -56,7 +57,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,10 +82,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import eu.tutorials.koperasi_simpan_pinjam.data.session.SessionManager
+import eu.tutorials.koperasi_simpan_pinjam.pages.admin.InterestSlider
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.DeepBlue
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.Pink80
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.PurpleGrey80
+import eu.tutorials.koperasi_simpan_pinjam.ui.theme.white
 import eu.tutorials.koperasi_simpan_pinjam.utils.PENGAJUAN_CHANNEL_ID
 import eu.tutorials.koperasi_simpan_pinjam.utils.showNotification
 import kotlinx.coroutines.launch
@@ -90,9 +100,56 @@ import kotlin.text.format
 // Data class untuk item di bottom bar
 data class BottomBarItem(val label: String, val icon: ImageVector, val route: String)
 
+
+// input untuk rupiah VISUAL dalam FORMULIR
+class RupiahVisualTransformation : VisualTransformation {
+
+    override fun filter(text: AnnotatedString): TransformedText {
+
+        if (text.text.isEmpty()) {
+            return TransformedText(
+                AnnotatedString(""),
+                OffsetMapping.Identity
+            )
+        }
+
+        val digits = text.text.filter { it.isDigit() }
+        val value = digits.toLongOrNull() ?: 0L
+
+        val formatted = NumberFormat
+            .getCurrencyInstance(java.util.Locale("in", "ID"))
+            .format(value)
+
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                return formatted.length
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                return digits.length
+            }
+        }
+
+        return TransformedText(
+            AnnotatedString(formatted),
+            offsetMapping
+        )
+    }
+}
+
+fun Long.toRupiah(): String {
+    return NumberFormat
+        .getCurrencyInstance(java.util.Locale("in", "ID"))
+        .format(this)
+}
+
 ///HALAMAN HOMEPAGE KONTEN NASABAH - Theo & John
 @Composable
 fun HomePage(navController: NavHostController) {
+    // ambil id user dari session setelah login
+    val context = LocalContext.current
+    val userId = SessionManager.getUserId(context)
+
     val namaNasabah = "Nama" //nanti ambil dr database
     val totalSaldoSimpanan = 2250000.0 //nanti ambil dari database
     val pinjamanNasabah = PinjamanAktif(
@@ -183,8 +240,21 @@ fun HomePage(navController: NavHostController) {
 }
 
 ///HALAMAN SIMPANAN KONTEN NASABAH - Theo & John
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SimpananPage() {
+
+    // ambil id user dari session setelah login
+    val context = LocalContext.current
+    val userId = SessionManager.getUserId(context)
+    println("user id saya adalah (dari simpananPage) $userId")
+
+    // menggunakan MVVM untuk mendapatkan seluruh simpanan dari userId
+
+
+    val showPengajuanSimpananModalSheet = remember {mutableStateOf(value = false)}
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     //hanya data contoh sebelum masok ke DB
     val daftarTransaksi = listOf(
         TransaksiSimpanan("S001", "05 Okt 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT),
@@ -202,8 +272,122 @@ fun SimpananPage() {
             JenisSimpanan("Simpanan Sukarela", 750000.0, Icons.Filled.Favorite, Color(0xFF7D5260))
         )
     }
+
     val totalSaldo = daftarJenisSimpanan.sumOf{it.saldo}
+
     val pagerState = rememberPagerState(pageCount = {daftarJenisSimpanan.size})
+
+    // modal untuk pengajuan simpanan
+    if(showPengajuanSimpananModalSheet.value){
+        ModalBottomSheet(
+            onDismissRequest = { showPengajuanSimpananModalSheet.value = false },
+            sheetState = sheetState,
+            containerColor = white,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ){
+                Text("Form Melakukan simpanan", fontSize = 22.sp, color = DeepBlue)
+                Spacer(Modifier.height(16.dp))
+
+                var expandedSavingType by remember { mutableStateOf(false) }
+                var savingtype by remember { mutableStateOf("Browse Saving type") }
+                var rawRupiahValue by remember { mutableStateOf("") }
+
+                ExposedDropdownMenuBox(
+                    expanded = expandedSavingType,
+                    onExpandedChange = { expandedSavingType = !expandedSavingType }
+                ) {
+                    OutlinedTextField(
+                        value = savingtype,
+                        onValueChange = {},
+                        label = { Text("Type") },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        readOnly = true,
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSavingType)
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
+                        ),
+                        textStyle = TextStyle(color = DeepBlue, fontSize = 16.sp)
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expandedSavingType,
+                        onDismissRequest = { expandedSavingType = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(text = "Pokok", color = DeepBlue) },
+                            onClick = {
+                                savingtype = "Pokok"
+                                expandedSavingType = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(text = "Wajib", color = DeepBlue) },
+                            onClick = {
+                                savingtype  = "Wajib"
+                                expandedSavingType = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(text = "Sukarela", color = DeepBlue) },
+                            onClick = {
+                                savingtype  = "Suakrela"
+                                expandedSavingType = false
+                            }
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = rawRupiahValue,
+                    onValueChange = { input ->
+                        rawRupiahValue = input.filter { it.isDigit() }
+                    },
+                    label = { Text("Jumlah Simpanan") },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number
+                    ),
+                    visualTransformation = RupiahVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = TextStyle(
+                        color = Color.Black
+                    ),
+                )
+
+                Spacer(Modifier.height(20.dp))
+
+                Button(
+                    onClick = {
+                        val amount: Long =
+                            rawRupiahValue.toLongOrNull() ?: 0L
+
+                        println("Submit amount = $amount")
+                        println("Formatted = ${amount.toRupiah()}")
+                        showPengajuanSimpananModalSheet.value = false
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = DeepBlue)
+                ) {
+                    Text("Simpan", color = white)
+                }
+
+                TextButton(onClick = { showPengajuanSimpananModalSheet.value = false }) {
+                    Icon(Icons.Default.Close, contentDescription = null)
+                    Text("Batal")
+                }
+
+            }
+
+        }
+    }
     LazyColumn (
         modifier = Modifier
             .fillMaxSize()
@@ -311,13 +495,28 @@ fun SimpananPage() {
 
         //bagian judul untuk daftar mutasi
         item {
-            Text(
-                text = "Mutasi Rekening",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+                ){
+                    Text(
+                        text = "Mutasi Rekening",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = {
+                    showPengajuanSimpananModalSheet.value = true
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "tambahkan simpnanan"
+                    )
+                }
+            }
         }
+
 
         //mutasi
         items(daftarTransaksi) { transaksi ->

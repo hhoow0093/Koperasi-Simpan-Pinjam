@@ -11,11 +11,11 @@ import eu.tutorials.koperasi_simpan_pinjam.pages.admin.DashboardAdminn
 import eu.tutorials.koperasi_simpan_pinjam.pages.admin.ManageUserPage
 import androidx.lifecycle.viewmodel.compose.viewModel
 import eu.tutorials.koperasi_simpan_pinjam.data.API.RetrofitClient
-import eu.tutorials.koperasi_simpan_pinjam.data.repository.UserRepository
-import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.DashBoardAdminViewModel
-import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.DashboardViewModelFactory
-import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.ManageUserAdminViewModel
-import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.ManageUserAdminViewModelFactory
+import eu.tutorials.koperasi_simpan_pinjam.data.repository.admin.UserRepository
+import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin.DashBoardAdminViewModel
+import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin.DashboardViewModelFactory
+import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin.ManageUserAdminViewModel
+import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin.ManageUserAdminViewModelFactory
 import eu.tutorials.koperasi_simpan_pinjam.pages.admin.AdminReportPage
 import eu.tutorials.koperasi_simpan_pinjam.pages.admin.AdminTransactionPage
 import eu.tutorials.koperasi_simpan_pinjam.pages.admin.AdminUserLoansPage

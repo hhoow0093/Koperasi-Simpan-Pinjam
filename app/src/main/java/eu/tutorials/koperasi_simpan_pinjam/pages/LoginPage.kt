@@ -36,6 +36,7 @@ import eu.tutorials.koperasi_simpan_pinjam.fragments.EmailAlignedTextField
 import eu.tutorials.koperasi_simpan_pinjam.fragments.PasswordTextField
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import eu.tutorials.koperasi_simpan_pinjam.data.session.SessionManager
 
 @Composable
 fun LoginPage(navController: NavHostController, modifier: Modifier = Modifier){
@@ -116,12 +117,16 @@ fun LoginPage(navController: NavHostController, modifier: Modifier = Modifier){
                                 Log.d("RESPONSE_TAG", response.body().toString())
                                 val message = response.body()?.message ?: "No message"
                                 val isAdmin = response.body()?.isAdmin?: false
+                                val userId = response.body()?.user_id?: ""
+
                                 if(isAdmin){
                                     Toast.makeText(context, "✅ $message", Toast.LENGTH_LONG).show()
                                     navController.navigate("dashboardAdmin")
+                                    SessionManager.saveUserId(context, userId)
                                 }else{
                                     Toast.makeText(context, "✅ $message", Toast.LENGTH_LONG).show()
                                     navController.navigate("dashboard")
+                                    SessionManager.saveUserId(context, userId)
                                 }
                             } else {
                                 val errorBody = response.errorBody()?.string()

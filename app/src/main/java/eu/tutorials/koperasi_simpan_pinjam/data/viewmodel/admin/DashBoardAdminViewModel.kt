@@ -1,8 +1,8 @@
-package eu.tutorials.koperasi_simpan_pinjam.data.viewmodel
+package eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eu.tutorials.koperasi_simpan_pinjam.data.repository.UserRepository
+import eu.tutorials.koperasi_simpan_pinjam.data.repository.admin.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

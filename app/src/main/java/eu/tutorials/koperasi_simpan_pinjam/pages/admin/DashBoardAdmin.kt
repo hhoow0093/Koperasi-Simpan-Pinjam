@@ -20,9 +20,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import eu.tutorials.koperasi_simpan_pinjam.data.API.RetrofitClient
-import eu.tutorials.koperasi_simpan_pinjam.data.repository.UserRepository
-import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.DashBoardAdminViewModel
-import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.DashboardViewModelFactory
+import eu.tutorials.koperasi_simpan_pinjam.data.repository.admin.UserRepository
+import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin.DashBoardAdminViewModel
+import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin.DashboardViewModelFactory
 import eu.tutorials.koperasi_simpan_pinjam.fragments.admin.DrawerNavigationAdmin
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.DeepBlue
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme

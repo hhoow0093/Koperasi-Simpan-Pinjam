@@ -1,4 +1,4 @@
-package eu.tutorials.koperasi_simpan_pinjam.data.repository
+package eu.tutorials.koperasi_simpan_pinjam.data.repository.admin
 
 import eu.tutorials.koperasi_simpan_pinjam.data.API.ApiService
 import eu.tutorials.koperasi_simpan_pinjam.data.API.ResponseMessage
@@ -29,7 +29,7 @@ class UserRepository(private val api: ApiService){
         return api.updateUser(user._id, user)
     }
 
-    suspend fun deleteUser(user: User): Response<ResponseMessage>{
+    suspend fun deleteUser(user: User): Response<ResponseMessage> {
         return api.deleteUser(user._id)
     }
 }

@@ -1,8 +1,8 @@
-package eu.tutorials.koperasi_simpan_pinjam.data.viewmodel
+package eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import eu.tutorials.koperasi_simpan_pinjam.data.repository.UserRepository
+import eu.tutorials.koperasi_simpan_pinjam.data.repository.admin.UserRepository
 
 
 class DashboardViewModelFactory(private val userRepository: UserRepository) : ViewModelProvider.Factory {
