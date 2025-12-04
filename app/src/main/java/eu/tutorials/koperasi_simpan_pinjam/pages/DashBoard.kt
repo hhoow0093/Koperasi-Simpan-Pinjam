@@ -1030,7 +1030,7 @@ fun HistoriPage(viewModel: DashboardViewModel) {
 //        )
 //    }
     val historiPinjaman = fullHistoriList.filter {
-        it.tipe == TipeHistori.BAYAR_ANGSURAN || it.tipe == TipeHistori.BAYAR_DENDA
+        it.tipe == TipeHistori.BAYAR_ANGSURAN || it.tipe == TipeHistori.BAYAR_DENDA || it.tipe == TipeHistori.PENGAJUAN_PINJAMAN
     }
 
     //kontrol tab aktif
@@ -1832,6 +1832,7 @@ fun HistoriTimelineItem(
     val (ikon, warna) = when(item.tipe){
         TipeHistori.SIMPANAN_MASUK -> Icons.Filled.AccountBalanceWallet to MaterialTheme.colorScheme.primary
         TipeHistori.SIMPANAN_KELUAR -> Icons.Filled.Upload to MaterialTheme.colorScheme.tertiary
+        TipeHistori.PENGAJUAN_PINJAMAN -> Icons.Filled.Money to MaterialTheme.colorScheme.primary
         TipeHistori.BAYAR_ANGSURAN -> Icons.Filled.ReceiptLong to Color(0xFF2E7D32)
         TipeHistori.BAYAR_DENDA -> Icons.Filled.Warning to MaterialTheme.colorScheme.error
     }

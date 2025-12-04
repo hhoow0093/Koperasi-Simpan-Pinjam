@@ -88,7 +88,7 @@ data class PostPinjamanRequest(
 )
 
 //HISTORI TRANSAKSI
-enum class TipeHistori { SIMPANAN_MASUK, SIMPANAN_KELUAR, BAYAR_ANGSURAN, BAYAR_DENDA }
+enum class TipeHistori { SIMPANAN_MASUK, SIMPANAN_KELUAR, PENGAJUAN_PINJAMAN, BAYAR_ANGSURAN, BAYAR_DENDA }
 
 data class ItemHistori(
     val id: String,
