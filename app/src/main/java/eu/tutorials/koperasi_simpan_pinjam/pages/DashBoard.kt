@@ -366,7 +366,7 @@ fun SimpananPage(viewModel: DashboardViewModel) {
                         DropdownMenuItem(
                             text = { Text(text = "Sukarela", color = DeepBlue) },
                             onClick = {
-                                savingtype  = "Suakrela"
+                                savingtype  = "Sukarela"
                                 expandedSavingType = false
                             }
                         )

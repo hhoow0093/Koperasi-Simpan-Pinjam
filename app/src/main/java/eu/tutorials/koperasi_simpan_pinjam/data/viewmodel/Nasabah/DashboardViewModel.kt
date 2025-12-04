@@ -96,10 +96,10 @@ class DashboardViewModel(context: Context) : ViewModel() {
         }
     }
 
-    fun postPinjaman(userId: String, amount: Double, tenor: Int) {
+    fun postPinjaman(userId: String, amount: Double, /*typeOfLoans: String,*/ tenor: Int) {
         viewModelScope.launch {
             try {
-                val request = PostPinjamanRequest(userId, amount, tenor)
+                val request = PostPinjamanRequest(userId, amount, /*typeOfLoans, */tenor)
                 val response = api.ajukanPinjaman(request)
                 if (response.isSuccessful) {
                     loadAllData(userId) // Refresh list
