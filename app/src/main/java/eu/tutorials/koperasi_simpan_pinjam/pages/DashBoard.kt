@@ -2,7 +2,6 @@
 package eu.tutorials.koperasi_simpan_pinjam.pages
 
 import android.Manifest
-import android.R
 import android.content.Context
 import android.content.pm.PackageManager
 import android.icu.text.NumberFormat
@@ -54,7 +53,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -64,8 +62,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.intl.Locale
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -74,6 +70,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -83,19 +80,20 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import eu.tutorials.koperasi_simpan_pinjam.data.session.SessionManager
-import eu.tutorials.koperasi_simpan_pinjam.pages.admin.InterestSlider
+import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.Nasabah.DashboardViewModel
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.DeepBlue
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.KoperasiSimpanPinjamTheme
-import eu.tutorials.koperasi_simpan_pinjam.ui.theme.Pink80
-import eu.tutorials.koperasi_simpan_pinjam.ui.theme.PurpleGrey80
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.white
 import eu.tutorials.koperasi_simpan_pinjam.utils.PENGAJUAN_CHANNEL_ID
 import eu.tutorials.koperasi_simpan_pinjam.utils.showNotification
-import kotlinx.coroutines.launch
 import java.io.File
 import java.text.DecimalFormat
 import kotlin.math.absoluteValue
 import kotlin.text.format
+import eu.tutorials.koperasi_simpan_pinjam.data.API.*
+import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.Nasabah.DashboardNasabahViewModelFactory
+import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin.DashboardViewModelFactory
+
 
 // Data class untuk item di bottom bar
 data class BottomBarItem(val label: String, val icon: ImageVector, val route: String)
@@ -145,20 +143,31 @@ fun Long.toRupiah(): String {
 
 ///HALAMAN HOMEPAGE KONTEN NASABAH - Theo & John
 @Composable
-fun HomePage(navController: NavHostController) {
+fun HomePage(navController: NavHostController, viewModel: DashboardViewModel) {
     // ambil id user dari session setelah login
     val context = LocalContext.current
     val userId = SessionManager.getUserId(context)
 
-    val namaNasabah = "Nama" //nanti ambil dr database
-    val totalSaldoSimpanan = 2250000.0 //nanti ambil dari database
-    val pinjamanNasabah = PinjamanAktif(
-        pokok = 5000000.0,
-        bunga = 50000.0,
-        totalCicilanPerBulan = 550000.0,
-        sisaAngsuran = 9,
-        totalAngsuran = 10
-    )
+//    val namaNasabah = "Nama" //nanti ambil dr database
+//    val totalSaldoSimpanan = 2250000.0 //nanti ambil dari database
+//    val pinjamanNasabah = PinjamanAktif(
+//        pokok = 5000000.0,
+//        bunga = 50000.0,
+//        totalCicilanPerBulan = 550000.0,
+//        sisaAngsuran = 9,
+//        totalAngsuran = 10
+//    )
+
+    //fetch data selagi load
+    LaunchedEffect(userId){
+        if(userId!=null) viewModel.loadAllData(userId)
+    }
+
+    //ambil data nasabah dari db
+    val user by viewModel.userProfile.collectAsState()
+    val saldo by viewModel.totalSaldo.collectAsState()
+    val pinjamanAktif by viewModel.pinjamanAktif.collectAsState()
+
 
     //pakai lazycolumn
     LazyColumn(
@@ -171,19 +180,21 @@ fun HomePage(navController: NavHostController) {
         //kartu saldo utama
         item {
             KartuSaldoUtama(
-                namaNasabah = namaNasabah,
-                totalSaldo = totalSaldoSimpanan
+                namaNasabah = user?.name ?: "Nasabah",
+                totalSaldo = saldo
             )
         }
         //rincian pinjaman aktif (kalo ada)
         item {
-            Text(
-                text = "Pinjaman Aktif",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            KartuPinjamanAktif(dataPinjaman = pinjamanNasabah)
+            if(pinjamanAktif!=null){
+                Text(
+                    text = "Pinjaman Aktif",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                KartuPinjamanAktif(pinjamanAktif!!)
+            }
         }
         //menu cepat
         item {
@@ -242,7 +253,7 @@ fun HomePage(navController: NavHostController) {
 ///HALAMAN SIMPANAN KONTEN NASABAH - Theo & John
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SimpananPage() {
+fun SimpananPage(viewModel: DashboardViewModel) {
 
     // ambil id user dari session setelah login
     val context = LocalContext.current
@@ -251,25 +262,39 @@ fun SimpananPage() {
 
     // menggunakan MVVM untuk mendapatkan seluruh simpanan dari userId
 
+    //dapatkan list dari DB
+    val daftarTransaksi by viewModel.transaksiSimpananList.collectAsState()
 
     val showPengajuanSimpananModalSheet = remember {mutableStateOf(value = false)}
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     //hanya data contoh sebelum masok ke DB
-    val daftarTransaksi = listOf(
-        TransaksiSimpanan("S001", "05 Okt 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT),
-        TransaksiSimpanan("S002", "01 Okt 2025", "Tarik Tunai", 250000.0, TipeTransaksi.DEBIT),
-        TransaksiSimpanan("S003", "15 Sep 2025", "Simpanan Sukarela", 50000.0, TipeTransaksi.KREDIT),
-        TransaksiSimpanan("S004", "05 Sep 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT),
-        TransaksiSimpanan("S005", "20 Ags 2025", "Biaya Administrasi", 5000.0, TipeTransaksi.DEBIT),
-        TransaksiSimpanan("S006", "05 Ags 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT)
-    )
+//    val daftarTransaksi = listOf(
+//        TransaksiSimpanan("S001", "05 Okt 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT),
+//        TransaksiSimpanan("S002", "01 Okt 2025", "Tarik Tunai", 250000.0, TipeTransaksi.DEBIT),
+//        TransaksiSimpanan("S003", "15 Sep 2025", "Simpanan Sukarela", 50000.0, TipeTransaksi.KREDIT),
+//        TransaksiSimpanan("S004", "05 Sep 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT),
+//        TransaksiSimpanan("S005", "20 Ags 2025", "Biaya Administrasi", 5000.0, TipeTransaksi.DEBIT),
+//        TransaksiSimpanan("S006", "05 Ags 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT)
+//    )
 
-    val daftarJenisSimpanan = remember {
+    val saldoPokok = remember(daftarTransaksi) {
+        daftarTransaksi.filter { it.keterangan.contains("Pokok", ignoreCase = true) }
+            .sumOf { if(it.tipe == TipeTransaksi.KREDIT) it.jumlah else -it.jumlah }
+    }
+    val saldoWajib = remember(daftarTransaksi) {
+        daftarTransaksi.filter { it.keterangan.contains("Wajib", ignoreCase = true) }
+            .sumOf { if(it.tipe == TipeTransaksi.KREDIT) it.jumlah else -it.jumlah }
+    }
+    val saldoSukarela = remember(daftarTransaksi) {
+        daftarTransaksi.filter { it.keterangan.contains("Sukarela", ignoreCase = true) }
+            .sumOf { if(it.tipe == TipeTransaksi.KREDIT) it.jumlah else -it.jumlah }
+    }
+    val daftarJenisSimpanan = remember(saldoPokok, saldoWajib, saldoSukarela) {
         listOf(
-            JenisSimpanan("Simpanan Pokok", 1000000.0, Icons.Filled.Shield, Color(0xFF1D336A)),
-            JenisSimpanan("Simpanan Wajib", 500000.0, Icons.Filled.Event, Color(0xFF625b71)),
-            JenisSimpanan("Simpanan Sukarela", 750000.0, Icons.Filled.Favorite, Color(0xFF7D5260))
+            JenisSimpanan("Simpanan Pokok", saldoPokok, Icons.Filled.Shield, Color(0xFF1D336A)),
+            JenisSimpanan("Simpanan Wajib", saldoWajib, Icons.Filled.Event, Color(0xFF625b71)),
+            JenisSimpanan("Simpanan Sukarela", saldoSukarela, Icons.Filled.Favorite, Color(0xFF7D5260))
         )
     }
 
@@ -306,7 +331,9 @@ fun SimpananPage() {
                         value = savingtype,
                         onValueChange = {},
                         label = { Text("Type") },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
                         readOnly = true,
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSavingType)
@@ -368,6 +395,14 @@ fun SimpananPage() {
                     onClick = {
                         val amount: Long =
                             rawRupiahValue.toLongOrNull() ?: 0L
+                        if(userId!=null && amount>0){
+                            viewModel.postSimpanan(
+                                userId = userId,
+                                type = savingtype,
+                                amount = amount.toDouble()
+                            )
+                            showPengajuanSimpananModalSheet.value = false
+                        }
 
                         println("Submit amount = $amount")
                         println("Formatted = ${amount.toRupiah()}")
@@ -394,6 +429,9 @@ fun SimpananPage() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ){
+//        items(daftarTransaksi){ transaksi ->
+//            ItemTransaksi(transaksi=transaksi)
+//        }
         //judul halaman
         item {
             Text(
@@ -524,6 +562,18 @@ fun SimpananPage() {
                 ItemTransaksi(transaksi = transaksi)
             }
         }
+
+        if(daftarTransaksi.isEmpty()){
+            item{
+                Text(
+                    text = "Belum ada riwayat transaksi",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
+                )
+            }
+        }
+
         //kasih spacer dibwh
         item {
             Spacer(modifier = Modifier.height(16.dp))
@@ -534,9 +584,12 @@ fun SimpananPage() {
 ////HALAMAN PINJAMAN KONTEN NASABAH - Theo & John
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PinjamanPage() {
+fun PinjamanPage(viewModel: DashboardViewModel) {
     val context = LocalContext.current
+    val userId = SessionManager.getUserId(context)
 
+    val daftarPengajuan by viewModel.pengajuanList.collectAsState()
+    val pinjamanAktif by viewModel.pinjamanAktif.collectAsState()
 
     var namaFileDipilih by remember { mutableStateOf<String?>(null) }
     var uriDipilih by remember { mutableStateOf<Uri?>(null) }
@@ -708,29 +761,29 @@ fun PinjamanPage() {
     }
 
     //data contoh aja sebelum masuk DB
-    val tagihanSaatIni = DetailTagihan(
-        nomorTagihan = "INV-2025-10-123",
-        jatuhTempo = "25 Okt 2025",
-        jumlahTagihan = 550000.0,
-        angsuranKe = 4,
-        totalAngsuran = 10
-    )
-    val detailPinjaman = RincianPinjaman(
-        totalPinjaman = 5000000.0,
-        tenor = 10,
-        cicilanPerBulan = 550000.0
-    )
+//    val tagihanSaatIni = DetailTagihan(
+//        nomorTagihan = "INV-2025-10-123",
+//        jatuhTempo = "25 Okt 2025",
+//        jumlahTagihan = 550000.0,
+//        angsuranKe = 4,
+//        totalAngsuran = 10
+//    )
+//    val detailPinjaman = RincianPinjaman(
+//        totalPinjaman = 5000000.0,
+//        tenor = 10,
+//        cicilanPerBulan = 550000.0
+//    )
 
     //pengajuan pinjaman bar + status pinjaman
     var jumlahPinjamanBaru by remember { mutableStateOf("") }
     var tenorPinjaman by remember { mutableStateOf(6f) }
-    val daftarPengajuan = remember {
-        mutableStateListOf(
-            PengajuanPinjaman("PNJ001", "10 Okt 2025", 3000000.0, 6, "Disetujui"),
-            PengajuanPinjaman("PNJ002", "02 Okt 2025", 7000000.0, 12, "Proses"),
-            PengajuanPinjaman("PNJ003", "25 Sep 2025", 10000000.0, 24, "Ditolak")
-        )
-    }
+//    val daftarPengajuan = remember {
+//        mutableStateListOf(
+//            PengajuanPinjaman("PNJ001", "10 Okt 2025", 3000000.0, 6, "Disetujui"),
+//            PengajuanPinjaman("PNJ002", "02 Okt 2025", 7000000.0, 12, "Proses"),
+//            PengajuanPinjaman("PNJ003", "25 Sep 2025", 10000000.0, 24, "Ditolak")
+//        )
+//    }
 
     LazyColumn(
         modifier = Modifier
@@ -738,29 +791,70 @@ fun PinjamanPage() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        //kart tagihan
-        item {
-            KartuTagihan(
-                tagihan = tagihanSaatIni,
-                namaFile = namaFileDipilih,
-                onUnggahBuktiClick = {
-                    isSheetOpen = true
-                },
-                onKirimBuktiClick = {
-                    uriDipilih?.let { uri ->
-                        println("Mulai mengunggah file: ${getFileName(context, uri)}")
-                    }
-                },
-                onBatalPilihFileClick = {
-                    uriDipilih = null
-                    namaFileDipilih = null
-                }
+        if(pinjamanAktif!=null){
+            val calendar = java.util.Calendar.getInstance()
+            val day = calendar.get(java.util.Calendar.DAY_OF_MONTH)
+            val month = calendar.getDisplayName(java.util.Calendar.MONTH, java.util.Calendar.LONG, java.util.Locale.getDefault())
+            val year = calendar.get(java.util.Calendar.YEAR)
+            val currentInvoice = DetailTagihan(
+                nomorTagihan = "INV-${System.currentTimeMillis().toString().takeLast(6)}",
+                jatuhTempo = "$day $month $year",
+                jumlahTagihan = pinjamanAktif!!.totalCicilanPerBulan,
+                angsuranKe = pinjamanAktif!!.totalAngsuran - pinjamanAktif!!.sisaAngsuran + 1,
+                totalAngsuran = pinjamanAktif!!.totalAngsuran
             )
+            val detailDisplay = RincianPinjaman(
+                totalPinjaman = pinjamanAktif!!.pokok,
+                tenor = pinjamanAktif!!.totalAngsuran,
+                cicilanPerBulan = pinjamanAktif!!.totalCicilanPerBulan
+            )
+
+            item {
+                KartuTagihan(
+                    tagihan = currentInvoice,
+                    namaFile = namaFileDipilih,
+                    onUnggahBuktiClick = { isSheetOpen = true },
+                    onKirimBuktiClick = { uriDipilih?.let { println("Mulai mengunggah file: ${getFileName(context, it)}") } },
+                    onBatalPilihFileClick = { uriDipilih = null; namaFileDipilih = null }
+                )
+            }
+            item{
+                KartuDetailPinjaman(detail = detailDisplay)
+            }
+        } else{
+            //klo gaada pinjaman aktif
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Text(
+                        text = "Anda tidak memiliki pinjaman aktif.",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
         }
-        //rincian pinjaman
-        item {
-            KartuDetailPinjaman(detail = detailPinjaman)
-        }
+//        //kart tagihan
+//        item {
+//            KartuTagihan(
+//                tagihan = tagihanSaatIni,
+//                namaFile = namaFileDipilih,
+//                onUnggahBuktiClick = {
+//                    isSheetOpen = true
+//                },
+//                onKirimBuktiClick = {
+//                    uriDipilih?.let { uri ->
+//                        println("Mulai mengunggah file: ${getFileName(context, uri)}")
+//                    }
+//                },
+//                onBatalPilihFileClick = {
+//                    uriDipilih = null
+//                    namaFileDipilih = null
+//                }
+//            )
+//        }
         //pengajuan pinjaman baru
         item {
             Column(
@@ -794,17 +888,22 @@ fun PinjamanPage() {
                 )
                 Button(
                     onClick = {
-                        if (jumlahPinjamanBaru.isNotEmpty()) {
-                            daftarPengajuan.add(
-                                PengajuanPinjaman(
-                                    id = "PNJ" + (daftarPengajuan.size + 1)
-                                        .toString().padStart(3, '0'),
-                                    tanggal = "13 Okt 2025",
-                                    jumlah = jumlahPinjamanBaru.toDouble(),
-                                    tenor = tenorPinjaman.toInt(),
-                                    status = "Proses"
-                                )
+                        if (jumlahPinjamanBaru.isNotEmpty() && userId != null) {
+                            viewModel.postPinjaman(
+                                userId = userId,
+                                amount = jumlahPinjamanBaru.toDouble(),
+                                tenor = tenorPinjaman.toInt()
                             )
+//                            daftarPengajuan.add(
+//                                PengajuanPinjaman(
+//                                    id = "PNJ" + (daftarPengajuan.size + 1)
+//                                        .toString().padStart(3, '0'),
+//                                    tanggal = "13 Okt 2025",
+//                                    jumlah = jumlahPinjamanBaru.toDouble(),
+//                                    tenor = tenorPinjaman.toInt(),
+//                                    status = "Proses"
+//                                )
+//                            )
                             val formattedJumlah = NumberFormat.getCurrencyInstance(
                                 java.util.Locale(
                                     "in",
@@ -840,44 +939,54 @@ fun PinjamanPage() {
                 color = MaterialTheme.colorScheme.onBackground
             )
         }
-        items(daftarPengajuan) { pengajuan ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), // Gunakan outline dari theme
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface // Gunakan warna dari theme
+        if(daftarPengajuan.isEmpty()){
+            item {
+                Text(
+                    text = "Belum ada pengajuan pinjaman",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(12.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+            }
+        } else{
+            items(daftarPengajuan) { pengajuan ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), // Gunakan outline dari theme
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface // Gunakan warna dari theme
+                    )
                 ) {
-                    Column {
+                    Row(
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                "Tanggal: ${pengajuan.tanggal}",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant // Gunakan warna yang lebih pudar
+                            )
+                            Text(
+                                "Jumlah: Rp ${pengajuan.jumlah.toFormattedString()}",
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "Tenor: ${pengajuan.tenor} bulan",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         Text(
-                            "Tanggal: ${pengajuan.tanggal}",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant // Gunakan warna yang lebih pudar
-                        )
-                        Text(
-                            "Jumlah: Rp ${pengajuan.jumlah.toFormattedString()}",
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            "Tenor: ${pengajuan.tenor} bulan",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            pengajuan.status,
+                            color = when (pengajuan.status) {
+                                "Disetujui" -> Color(0xFF2E7D32) // Hijau khusus untuk disetujui
+                                "Ditolak" -> MaterialTheme.colorScheme.error // Gunakan warna error untuk ditolak
+                                else -> Color(0xFFFFA000) // Warna khusus untuk proses
+                            },
+                            fontWeight = FontWeight.Bold
                         )
                     }
-                    Text(
-                        pengajuan.status,
-                        color = when (pengajuan.status) {
-                            "Disetujui" -> Color(0xFF2E7D32) // Hijau khusus untuk disetujui
-                            "Ditolak" -> MaterialTheme.colorScheme.error // Gunakan warna error untuk ditolak
-                            else -> Color(0xFFFFA000) // Warna khusus untuk proses
-                        },
-                        fontWeight = FontWeight.Bold
-                    )
                 }
             }
         }
@@ -896,26 +1005,43 @@ data class PengajuanPinjaman(
 ///HALAMAN HISTORI KONTEN NASABAH - John
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoriPage() {
+fun HistoriPage(viewModel: DashboardViewModel) {
+    val context = LocalContext.current
+    val userId = SessionManager.getUserId(context)
+    val fullHistoriList by viewModel.historiList.collectAsState()
+
     // contoh sebelum msk db
-    val historiSimpanan = remember {
-        listOf(
-            ItemHistori("S01", "05 Okt 2025", 100000.0, "Simpanan Wajib", TipeHistori.SIMPANAN_MASUK),
-            ItemHistori("S02", "01 Okt 2025", 250000.0, "Tarik Tunai", TipeHistori.SIMPANAN_KELUAR),
-            ItemHistori("S03", "15 Sep 2025", 50000.0, "Simpanan Sukarela", TipeHistori.SIMPANAN_MASUK),
-        )
+//    val historiSimpanan = remember {
+//        listOf(
+//            ItemHistori("S01", "05 Okt 2025", 100000.0, "Simpanan Wajib", TipeHistori.SIMPANAN_MASUK),
+//            ItemHistori("S02", "01 Okt 2025", 250000.0, "Tarik Tunai", TipeHistori.SIMPANAN_KELUAR),
+//            ItemHistori("S03", "15 Sep 2025", 50000.0, "Simpanan Sukarela", TipeHistori.SIMPANAN_MASUK),
+//        )
+//    }
+    val historiSimpanan = fullHistoriList.filter {
+        it.tipe == TipeHistori.SIMPANAN_MASUK || it.tipe == TipeHistori.SIMPANAN_KELUAR
     }
-    val historiPinjaman = remember {
-        listOf(
-            ItemHistori("P01", "10 Okt 2025", 500000.0, "Angsuran ke-3", TipeHistori.BAYAR_ANGSURAN),
-            ItemHistori("P02", "11 Sep 2025", 500000.0, "Angsuran ke-2", TipeHistori.BAYAR_ANGSURAN),
-            ItemHistori("D01", "11 Jul 2025", 25000.0, "Denda Keterlambatan", TipeHistori.BAYAR_DENDA)
-        )
+
+//    val historiPinjaman = remember {
+//        listOf(
+//            ItemHistori("P01", "10 Okt 2025", 500000.0, "Angsuran ke-3", TipeHistori.BAYAR_ANGSURAN),
+//            ItemHistori("P02", "11 Sep 2025", 500000.0, "Angsuran ke-2", TipeHistori.BAYAR_ANGSURAN),
+//            ItemHistori("D01", "11 Jul 2025", 25000.0, "Denda Keterlambatan", TipeHistori.BAYAR_DENDA)
+//        )
+//    }
+    val historiPinjaman = fullHistoriList.filter {
+        it.tipe == TipeHistori.BAYAR_ANGSURAN || it.tipe == TipeHistori.BAYAR_DENDA
     }
 
     //kontrol tab aktif
     var tabIndex by remember { mutableStateOf(0) }
     val tabs = listOf("Semua", "Simpanan", "Pinjaman")
+
+    LaunchedEffect(userId) {
+        if(userId!=null){
+            viewModel.loadAllData(userId)
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
 
@@ -947,15 +1073,22 @@ fun HistoriPage() {
         val daftarTampil = when (tabIndex) {
             1 -> historiSimpanan
             2 -> historiPinjaman
-            //gabungkan kedua list dan urutkan berdasarkan tanggal
-            else -> (historiSimpanan + historiPinjaman).sortedByDescending { it.tanggal }
+            else -> fullHistoriList
+            //gabung kedua list dan urut berdasarkan tanggal
+            //else -> (historiSimpanan + historiPinjaman).sortedByDescending { it.tanggal }
         }
         if (daftarTampil.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Tidak ada histori untuk ditampilkan.")
+                //loading indicator
+                if(fullHistoriList.isEmpty()){
+                    Text("Belum ada riwayat transaksi")
+                }
+                else{
+                    Text("Tidak ada data untuk filter ini")
+                }
             }
         } else {
             // Jika ada data, tampilkan dalam LazyColumn format timeline.
@@ -985,60 +1118,56 @@ data class ProfilNasabah(
 
 //profil page
 @Composable
-fun ProfilPage(navController: NavHostController) {
+fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) {
+    val context = LocalContext.current
+    val userId = SessionManager.getUserId(context)
+    val user by viewModel.userProfile.collectAsState()
+
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? -> imageUri = uri }
-    val dataProfil = remember {
-        ProfilNasabah(
-            nama = "Theo Aditya",
-            idAnggota = "AGT-2301",
-            tanggalGabung = "14 Oktober 2023",
-            statusKeanggotaan = "Aktif",
-            poin = 120
-        )
-    }
 
-    //kontrol dialog konfirmasi logout
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    if (showLogoutDialog) {
+    LaunchedEffect(userId) {
+        if(userId!=null){
+            viewModel.loadAllData(userId)
+        }
+    }
+
+    if(showLogoutDialog){
         AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = {
-                Text(text = "Konfirmasi Logout")
-            },
-            text = {
-                Text(text = "Apakah Anda yakin ingin keluar dari akun Anda?")
-            },
+            onDismissRequest = {showLogoutDialog = false},
+            title = { Text(text = "Konfirmasi Logout")},
+            text = { Text(text = "Apakah Anda yakin ingin keluar dari akun?")},
             confirmButton = {
                 TextButton(
                     onClick = {
                         showLogoutDialog = false
-                        navController.navigate("register") {
-                            popUpTo(0) {
-                                inclusive = true
-                            }
+                        SessionManager.clearSession(context)
+                        navController.navigate("register"){
+                            popUpTo(0){inclusive = true}
                             launchSingleTop = true
                         }
-                        println("Proses Logout dan navigasi ke halaman Register...")
                     }
-                ) {
-                    Text("Ya, Keluar")
-                }
+                ) { Text("Ya, Keluar")}
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        showLogoutDialog = false
-                    }
-                ) {
-                    Text("Batal")
-                }
+                TextButton(onClick = {showLogoutDialog = false}) {Text("Batal")}
             }
         )
     }
+//    val dataProfil = remember {
+//        ProfilNasabah(
+//            nama = "Theo Aditya",
+//            idAnggota = "AGT-2301",
+//            tanggalGabung = "14 Oktober 2023",
+//            statusKeanggotaan = "Aktif",
+//            poin = 120
+//        )
+//    }
+
 
     LazyColumn(
         modifier = Modifier
@@ -1086,11 +1215,17 @@ fun ProfilPage(navController: NavHostController) {
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    ProfilInfoRow(label = "Nama Lengkap", value = dataProfil.nama)
-                    ProfilInfoRow(label = "ID Anggota", value = dataProfil.idAnggota)
-                    ProfilInfoRow(label = "Tanggal Gabung", value = dataProfil.tanggalGabung)
-                    ProfilInfoRow(label = "Status Keanggotaan", value = dataProfil.statusKeanggotaan)
-                    ProfilInfoRow(label = "Total Poin", value = "${dataProfil.poin} poin")
+//                    ProfilInfoRow(label = "Nama Lengkap", value = dataProfil.nama)
+//                    ProfilInfoRow(label = "ID Anggota", value = dataProfil.idAnggota)
+//                    ProfilInfoRow(label = "Tanggal Gabung", value = dataProfil.tanggalGabung)
+//                    ProfilInfoRow(label = "Status Keanggotaan", value = dataProfil.statusKeanggotaan)
+//                    ProfilInfoRow(label = "Total Poin", value = "${dataProfil.poin} poin")
+                    ProfilInfoRow(label = "Nama Lengkap", value = user?.name ?: "Memuat...")
+                    ProfilInfoRow(label = "Email", value = user?.email ?: "-")
+                    ProfilInfoRow(label = "ID Anggota", value = user?._id?.takeLast(6)?.uppercase() ?: "-")
+                    val status = if(user?.member_status == true) "Aktif" else "Non-aktif"
+                    ProfilInfoRow(label = "Status Keanggotaan", value = status)
+                    ProfilInfoRow(label = "Role", value = user?.role ?: "Anggota")
                 }
             }
         }
@@ -1180,6 +1315,10 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
         val newTitle = bottomItems.find { it.route == currentRoute }?.label ?: "Dashboard"
         currentTitle = newTitle
     }
+
+    val viewModel: DashboardViewModel = viewModel(
+        factory = DashboardNasabahViewModelFactory(context)
+    )
     Scaffold(
         topBar = {
             TopAppBar(
@@ -1217,11 +1356,11 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("home") { HomePage(navController = dashboardNavController) }
-            composable("simpanan") { SimpananPage() }
-            composable("pinjaman") { PinjamanPage() }
-            composable("histori") { HistoriPage() }
-            composable("profil") { ProfilPage(navController = navController) }
+            composable("home") { HomePage(navController = dashboardNavController, viewModel = viewModel) }
+            composable("simpanan") { SimpananPage(viewModel = viewModel) }
+            composable("pinjaman") { PinjamanPage(viewModel = viewModel) }
+            composable("histori") { HistoriPage(viewModel = viewModel) }
+            composable("profil") { ProfilPage(navController = navController, viewModel = viewModel) }
         }
     }
 }
@@ -1324,13 +1463,13 @@ fun KartuSaldoUtama(
 }
 
 //data class untuk Pinjaman aktif
-data class PinjamanAktif(
-    val pokok: Double,
-    val bunga: Double,
-    val totalCicilanPerBulan: Double,
-    val sisaAngsuran: Int, //dalam bulan
-    val totalAngsuran: Int
-)
+//data class PinjamanAktif(
+//    val pokok: Double,
+//    val bunga: Double,
+//    val totalCicilanPerBulan: Double,
+//    val sisaAngsuran: Int, //dalam bulan
+//    val totalAngsuran: Int
+//)
 
 //composable kartupinjaman aktif
 @Composable
@@ -1416,17 +1555,17 @@ fun InfoPinjamanRow(label: String, value: String, isHighlight: Boolean = false) 
 }
 
 //UNTUK BAGIAN TAB SIMPANAN
-enum class TipeTransaksi{
-    KREDIT, DEBIT
-}
-
-data class TransaksiSimpanan(
-    val id: String,
-    val tanggal: String,
-    val keterangan: String,
-    val jumlah: Double,
-    val tipe: TipeTransaksi //kredit(masuk) atau debit(keluar)
-)
+//enum class TipeTransaksi{
+//    KREDIT, DEBIT
+//}
+//
+//data class TransaksiSimpanan(
+//    val id: String,
+//    val tanggal: String,
+//    val keterangan: String,
+//    val jumlah: Double,
+//    val tipe: TipeTransaksi //kredit(masuk) atau debit(keluar)
+//)
 
 data class JenisSimpanan(
     val nama: String,
@@ -1670,19 +1809,19 @@ fun KartuDetailPinjaman(detail: RincianPinjaman){
 
 //UNTUK BAGIAN TAB HISTORI
 //data class untuk menampung data
-enum class TipeHistori{
-    SIMPANAN_MASUK,
-    SIMPANAN_KELUAR,
-    BAYAR_ANGSURAN,
-    BAYAR_DENDA
-}
-data class ItemHistori(
-    val id: String,
-    val tanggal: String,
-    val jumlah: Double,
-    val keterangan: String,
-    val tipe: TipeHistori
-)
+//enum class TipeHistori{
+//    SIMPANAN_MASUK,
+//    SIMPANAN_KELUAR,
+//    BAYAR_ANGSURAN,
+//    BAYAR_DENDA
+//}
+//data class ItemHistori(
+//    val id: String,
+//    val tanggal: String,
+//    val jumlah: Double,
+//    val keterangan: String,
+//    val tipe: TipeHistori
+//)
 
 //buat timeline histori
 @Composable
