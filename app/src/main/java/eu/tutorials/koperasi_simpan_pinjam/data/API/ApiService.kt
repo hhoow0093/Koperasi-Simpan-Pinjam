@@ -7,6 +7,13 @@ import java.util.Date
 import retrofit2.http.GET
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import okhttp3.MultipartBody
+import retrofit2.http.Part
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+
+
 
 data class RegisterRequest(
     val email: String,
@@ -33,7 +40,8 @@ data class User(
     val password: String? = null,
     val gender: String? = null,
     val date_birth: Date? = null,
-    val member_status: Boolean = false
+    val member_status: Boolean = false,
+    val profileImage: String? = null
 )
 
 data class GetUserRequest(
@@ -150,6 +158,18 @@ interface ApiService {
     //apply pinjaman baru
     @POST("/pinjaman/apply")
     suspend fun ajukanPinjaman(@Body request: PostPinjamanRequest): Response<ResponseMessage>
+
+    @POST("users/upload-profile/{id}")
+    suspend fun uploadProfileImage(
+        @Path("id") userId: String,
+        @Part image: MultipartBody.Part
+    ): Response<UploadResponse>
+
+    data class UploadResponse(
+        val success: Boolean,
+        val message: String,
+        val imageUrl: String?
+    )
 
     //HISTORI TRANSAKSI
     @GET("/transaksi/all/{userId}")

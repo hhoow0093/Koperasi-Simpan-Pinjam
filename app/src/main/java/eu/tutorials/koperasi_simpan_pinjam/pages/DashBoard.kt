@@ -1123,51 +1123,58 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
     val userId = SessionManager.getUserId(context)
     val user by viewModel.userProfile.collectAsState()
 
+    // Uri lokal sementara untuk preview sebelum upload
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? -> imageUri = uri }
+    ) { uri: Uri? ->
+        uri?.let {
+            imageUri = it
+
+            // konversi uri ke byte array untuk upload
+            val inputStream = context.contentResolver.openInputStream(it)
+            val bytes = inputStream?.readBytes()
+            inputStream?.close()
+
+            if (bytes != null && userId != null) {
+                viewModel.uploadProfileImage(userId, bytes, "profile.jpg")
+            }
+        }
+    }
 
     var showLogoutDialog by remember { mutableStateOf(false) }
 
+    // Load data user saat pertama kali
     LaunchedEffect(userId) {
-        if(userId!=null){
+        if (userId != null) {
             viewModel.loadAllData(userId)
         }
     }
 
-    if(showLogoutDialog){
+    // Dialog konfirmasi logout
+    if (showLogoutDialog) {
         AlertDialog(
-            onDismissRequest = {showLogoutDialog = false},
-            title = { Text(text = "Konfirmasi Logout")},
-            text = { Text(text = "Apakah Anda yakin ingin keluar dari akun?")},
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text(text = "Konfirmasi Logout") },
+            text = { Text(text = "Apakah Anda yakin ingin keluar dari akun?") },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showLogoutDialog = false
                         SessionManager.clearSession(context)
-                        navController.navigate("register"){
-                            popUpTo(0){inclusive = true}
+                        navController.navigate("register") {
+                            popUpTo(0) { inclusive = true }
                             launchSingleTop = true
                         }
                     }
-                ) { Text("Ya, Keluar")}
+                ) { Text("Ya, Keluar") }
             },
             dismissButton = {
-                TextButton(onClick = {showLogoutDialog = false}) {Text("Batal")}
+                TextButton(onClick = { showLogoutDialog = false }) { Text("Batal") }
             }
         )
     }
-//    val dataProfil = remember {
-//        ProfilNasabah(
-//            nama = "Theo Aditya",
-//            idAnggota = "AGT-2301",
-//            tanggalGabung = "14 Oktober 2023",
-//            statusKeanggotaan = "Aktif",
-//            poin = 120
-//        )
-//    }
-
 
     LazyColumn(
         modifier = Modifier
@@ -1177,6 +1184,7 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Bagian foto profil & tombol upload
         item {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Card(
@@ -1188,7 +1196,8 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
                         .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 ) {
                     AsyncImage(
-                        model = imageUri ?: "https://via.placeholder.com/150",
+                        // jika imageUri kosong, pakai URL dari database user
+                        model = imageUri ?: user?.profileImage ?: "https://via.placeholder.com/150",
                         contentDescription = "Foto Profil",
                         modifier = Modifier.fillMaxSize()
                     )
@@ -1201,6 +1210,8 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
                 }
             }
         }
+
+        // Bagian detail user
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -1215,27 +1226,22 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-//                    ProfilInfoRow(label = "Nama Lengkap", value = dataProfil.nama)
-//                    ProfilInfoRow(label = "ID Anggota", value = dataProfil.idAnggota)
-//                    ProfilInfoRow(label = "Tanggal Gabung", value = dataProfil.tanggalGabung)
-//                    ProfilInfoRow(label = "Status Keanggotaan", value = dataProfil.statusKeanggotaan)
-//                    ProfilInfoRow(label = "Total Poin", value = "${dataProfil.poin} poin")
+
                     ProfilInfoRow(label = "Nama Lengkap", value = user?.name ?: "Memuat...")
                     ProfilInfoRow(label = "Email", value = user?.email ?: "-")
                     ProfilInfoRow(label = "ID Anggota", value = user?._id?.takeLast(6)?.uppercase() ?: "-")
-                    val status = if(user?.member_status == true) "Aktif" else "Non-aktif"
+                    val status = if (user?.member_status == true) "Aktif" else "Non-aktif"
                     ProfilInfoRow(label = "Status Keanggotaan", value = status)
                     ProfilInfoRow(label = "Role", value = user?.role ?: "Anggota")
                 }
             }
         }
-        //tombol logout
+
+        // Tombol logout
         item {
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedButton(
-                onClick = {
-                    showLogoutDialog = true
-                },
+                onClick = { showLogoutDialog = true },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = MaterialTheme.colorScheme.error
@@ -1250,7 +1256,7 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
     }
 }
 
-// komponen buat profilpage
+// Komponen row untuk profil page
 @Composable
 fun ProfilInfoRow(label: String, value: String) {
     Row(
@@ -1272,6 +1278,7 @@ fun ProfilInfoRow(label: String, value: String) {
         )
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

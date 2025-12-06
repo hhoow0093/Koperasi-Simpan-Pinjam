@@ -3,17 +3,13 @@ package eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.Nasabah
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eu.tutorials.koperasi_simpan_pinjam.data.API.ItemHistori
-import eu.tutorials.koperasi_simpan_pinjam.data.API.PengajuanPinjaman
-import eu.tutorials.koperasi_simpan_pinjam.data.API.PinjamanAktif
-import eu.tutorials.koperasi_simpan_pinjam.data.API.PostPinjamanRequest
-import eu.tutorials.koperasi_simpan_pinjam.data.API.PostSimpananRequest
-import eu.tutorials.koperasi_simpan_pinjam.data.API.RetrofitClient
-import eu.tutorials.koperasi_simpan_pinjam.data.API.TransaksiSimpanan
-import eu.tutorials.koperasi_simpan_pinjam.data.API.User
+import eu.tutorials.koperasi_simpan_pinjam.data.API.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import okhttp3.MultipartBody
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class DashboardViewModel(context: Context) : ViewModel() {
     private val api = RetrofitClient.instance
@@ -43,7 +39,6 @@ class DashboardViewModel(context: Context) : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    //FETCH FUNC
     fun loadAllData(userId: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -80,7 +75,6 @@ class DashboardViewModel(context: Context) : ViewModel() {
         }
     }
 
-    //CRUD (POST)
     fun postSimpanan(userId: String, type: String, amount: Double) {
         viewModelScope.launch {
             try {
@@ -103,6 +97,33 @@ class DashboardViewModel(context: Context) : ViewModel() {
                 val response = api.ajukanPinjaman(request)
                 if (response.isSuccessful) {
                     loadAllData(userId) // Refresh list
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun loadUserProfile(userId: String) {
+        viewModelScope.launch {
+            try {
+                val res = api.getUserById(userId)
+                if (res.isSuccessful) _userProfile.value = res.body()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun uploadProfileImage(userId: String, imageBytes: ByteArray, filename: String = "profile.jpg") {
+        viewModelScope.launch {
+            try {
+                val requestBody = imageBytes.toRequestBody("image/*".toMediaTypeOrNull())
+                val part = MultipartBody.Part.createFormData("image", filename, requestBody)
+                val res = api.uploadProfileImage(userId, part)
+                if (res.isSuccessful && res.body()?.imageUrl != null) {
+                    // reload user profile setelah update foto
+                    loadUserProfile(userId)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
