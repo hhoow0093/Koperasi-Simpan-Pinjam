@@ -1,4 +1,5 @@
 package eu.tutorials.koperasi_simpan_pinjam.data.API
+import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -31,6 +32,7 @@ data class UserAmount(
 )
 
 data class User(
+    @SerializedName("_id")
     val _id: String? = null,
     val name: String? = null,
     val age: Int? = null,
@@ -41,7 +43,7 @@ data class User(
     val gender: String? = null,
     val date_birth: Date? = null,
     val member_status: Boolean = false,
-    val profileImage: String? = null
+    val profile_image: String? = null
 )
 
 data class GetUserRequest(

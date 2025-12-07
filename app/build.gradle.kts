@@ -66,4 +66,8 @@ dependencies {
     implementation ("io.github.ehsannarmani:compose-charts:0.2.0")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation(libs.retrofit)
+    implementation(libs.converter.moshi) // Notice the dash becomes a dot
+    implementation(libs.okhttp.logging)
+    implementation(libs.moshi.kotlin)
 }

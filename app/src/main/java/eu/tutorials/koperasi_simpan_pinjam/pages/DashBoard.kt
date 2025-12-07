@@ -1196,8 +1196,17 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
                         .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 ) {
                     AsyncImage(
-                        // jika imageUri kosong, pakai URL dari database user
-                        model = imageUri ?: user?.profileImage ?: "https://via.placeholder.com/150",
+                        //kalo start dengan http, langsung load url
+                        //kalo start dengan / pake dengan /, maka akan diambil dengan nama file yang sama dengan nama user dengan ext .jpg
+                        model = if (user?.profile_image != null) {
+                            if (user!!.profile_image!!.startsWith("http")) {
+                                user!!.profile_image
+                            } else {
+                                "http://10.0.2.2:3000" + user!!.profile_image
+                            }
+                        } else {
+                            "https://via.placeholder.com/150"
+                        },
                         contentDescription = "Foto Profil",
                         modifier = Modifier.fillMaxSize()
                     )
@@ -1229,10 +1238,14 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
 
                     ProfilInfoRow(label = "Nama Lengkap", value = user?.name ?: "Memuat...")
                     ProfilInfoRow(label = "Email", value = user?.email ?: "-")
-                    ProfilInfoRow(label = "ID Anggota", value = user?._id?.takeLast(6)?.uppercase() ?: "-")
-                    val status = if (user?.member_status == true) "Aktif" else "Non-aktif"
+                    ProfilInfoRow(label = "ID Anggota", value = user?._id?.let{ "#${it.takeLast(6).uppercase()}"} ?: "-")
+                    val status = when(user?.member_status){
+                        true -> "Aktif"
+                        false -> "Non-aktif"
+                        else -> "Memuat..."
+                    }
                     ProfilInfoRow(label = "Status Keanggotaan", value = status)
-                    ProfilInfoRow(label = "Role", value = user?.role ?: "Anggota")
+                    ProfilInfoRow(label = "Role", value = user?.role?.replaceFirstChar { it.uppercase() } ?: "-")
                 }
             }
         }
