@@ -123,7 +123,7 @@ interface ApiService {
     @GET("/users")
     suspend fun getAllUsers(): Response<GetUserRequest>
 
-    @GET("/users/{id}")
+    @GET("/user/{id}")
     suspend fun getUserById(
         @Path("id") id: String?
     ): Response<User>

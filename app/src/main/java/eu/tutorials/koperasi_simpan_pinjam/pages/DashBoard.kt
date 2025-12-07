@@ -873,7 +873,10 @@ fun PinjamanPage(viewModel: DashboardViewModel) {
                     value = jumlahPinjamanBaru,
                     onValueChange = { jumlahPinjamanBaru = it },
                     label = { Text("Jumlah Pinjaman (Rp)") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = TextStyle(
+                        color = Color.Black
+                    ),
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
@@ -1123,6 +1126,14 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
     val userId = SessionManager.getUserId(context)
     val user by viewModel.userProfile.collectAsState()
 
+
+    println("user name is : ${user?.name}")
+    println("user email is : ${user?.email}" )
+    println("user id is : ${user?._id}")
+    println("member status is: ${user?.member_status}")
+    println("member role is : ${user?.role}")
+
+
     // Uri lokal sementara untuk preview sebelum upload
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -1287,7 +1298,7 @@ fun ProfilInfoRow(label: String, value: String) {
         Text(
             text = value,
             fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onSurface
+            color =  Color.Black
         )
     }
 }
