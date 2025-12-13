@@ -549,19 +549,10 @@ fun SimpananPage(viewModel: DashboardViewModel) {
 
                 Button(
                     onClick = {
-                        val amount = rawRupiahValue.toLongOrNull() ?: 0L
-
-                        if (
-                            userId != null &&
-                            amount > 0 &&
-                            selectedImageBytes != null &&
-                            savingtype != "Jenis Simpanan"
-                        ) {
                         val amount: Long = rawRupiahValue.toLongOrNull() ?: 0L
-
-                        //validasi sebelum submit
                         var isValid = true
 
+                        // 1. Validasi Input
                         if (savingtype == "Jenis Simpanan") {
                             errorMessage = "Pilih jenis simpanan terlebih dahulu"
                             isValid = false
@@ -574,9 +565,14 @@ fun SimpananPage(viewModel: DashboardViewModel) {
                         } else if (savingtype == "Wajib" && isWajibPaidThisMonth()) {
                             errorMessage = "Anda sudah membayar Simpanan Wajib bulan ini"
                             isValid = false
+                        } else if (selectedImageBytes == null) {
+                            // Tambahan: Pastikan gambar dipilih karena code Anda mengharuskan imageBytes != null
+                            errorMessage = "Mohon upload bukti simpanan"
+                            isValid = false
                         }
 
-                        if (isValid && userId != null) {
+                        // 2. Eksekusi Post
+                        if (isValid && userId != null && selectedImageBytes != null) {
                             viewModel.postSimpanan(
                                 userId = userId,
                                 type = savingtype,
@@ -586,6 +582,7 @@ fun SimpananPage(viewModel: DashboardViewModel) {
                             showPengajuanSimpananModalSheet.value = false
                         }
                     },
+                    // Parameter tombol diletakkan DI LUAR kurung kurawal onClick, tapi DI DALAM kurung biasa Button
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = DeepBlue)
                 ) {
