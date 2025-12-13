@@ -16,6 +16,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -54,6 +55,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -79,6 +81,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import eu.tutorials.koperasi_simpan_pinjam.data.session.SessionManager
 import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.Nasabah.DashboardViewModel
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.DeepBlue
@@ -269,16 +272,6 @@ fun SimpananPage(viewModel: DashboardViewModel) {
     val showPengajuanSimpananModalSheet = remember {mutableStateOf(value = false)}
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    //hanya data contoh sebelum masok ke DB
-//    val daftarTransaksi = listOf(
-//        TransaksiSimpanan("S001", "05 Okt 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT),
-//        TransaksiSimpanan("S002", "01 Okt 2025", "Tarik Tunai", 250000.0, TipeTransaksi.DEBIT),
-//        TransaksiSimpanan("S003", "15 Sep 2025", "Simpanan Sukarela", 50000.0, TipeTransaksi.KREDIT),
-//        TransaksiSimpanan("S004", "05 Sep 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT),
-//        TransaksiSimpanan("S005", "20 Ags 2025", "Biaya Administrasi", 5000.0, TipeTransaksi.DEBIT),
-//        TransaksiSimpanan("S006", "05 Ags 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT)
-//    )
-
     val saldoPokok = remember(daftarTransaksi) {
         daftarTransaksi.filter { it.keterangan.contains("Pokok", ignoreCase = true) }
             .sumOf { if(it.tipe == TipeTransaksi.KREDIT) it.jumlah else -it.jumlah }
@@ -305,6 +298,20 @@ fun SimpananPage(viewModel: DashboardViewModel) {
 
     // modal untuk pengajuan simpanan
     if(showPengajuanSimpananModalSheet.value){
+        var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+        var selectedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
+
+        val context = LocalContext.current
+
+        val imagePickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri: Uri? ->
+            selectedImageUri = uri
+            selectedImageBytes = uri?.let {
+                context.contentResolver.openInputStream(it)?.readBytes()
+            }
+        }
+
         ModalBottomSheet(
             onDismissRequest = { showPengajuanSimpananModalSheet.value = false },
             sheetState = sheetState,
@@ -351,20 +358,6 @@ fun SimpananPage(viewModel: DashboardViewModel) {
                         onDismissRequest = { expandedSavingType = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text(text = "Pokok", color = DeepBlue) },
-                            onClick = {
-                                savingtype = "Pokok"
-                                expandedSavingType = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(text = "Wajib", color = DeepBlue) },
-                            onClick = {
-                                savingtype  = "Wajib"
-                                expandedSavingType = false
-                            }
-                        )
-                        DropdownMenuItem(
                             text = { Text(text = "Sukarela", color = DeepBlue) },
                             onClick = {
                                 savingtype  = "Sukarela"
@@ -390,24 +383,55 @@ fun SimpananPage(viewModel: DashboardViewModel) {
                     ),
                 )
 
+                Spacer(Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = { imagePickerLauncher.launch("image/*") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Image, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = if (selectedImageUri == null)
+                            "Upload Bukti Simpanan"
+                        else
+                            "Gambar Dipilih",
+                        color = DeepBlue
+                    )
+                }
+
+                selectedImageUri?.let {
+                    Spacer(Modifier.height(12.dp))
+                    Image(
+                        painter = rememberAsyncImagePainter(it),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(150.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
                 Spacer(Modifier.height(20.dp))
 
                 Button(
                     onClick = {
-                        val amount: Long =
-                            rawRupiahValue.toLongOrNull() ?: 0L
-                        if(userId!=null && amount>0){
+                        val amount = rawRupiahValue.toLongOrNull() ?: 0L
+
+                        if (
+                            userId != null &&
+                            amount > 0 &&
+                            selectedImageBytes != null &&
+                            savingtype != "Jenis Simpanan"
+                        ) {
                             viewModel.postSimpanan(
                                 userId = userId,
                                 type = savingtype,
-                                amount = amount.toDouble()
+                                amount = amount.toDouble(),
+                                imageBytes = selectedImageBytes!!
                             )
                             showPengajuanSimpananModalSheet.value = false
                         }
-
-                        println("Submit amount = $amount")
-                        println("Formatted = ${amount.toRupiah()}")
-                        showPengajuanSimpananModalSheet.value = false
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = DeepBlue)
@@ -1636,7 +1660,7 @@ fun ItemTransaksi(transaksi: TransaksiSimpanan){
                 text = transaksi.keterangan,
                 fontWeight = FontWeight.SemiBold,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color.Black
             )
             Text(
                 text = transaksi.tanggal,

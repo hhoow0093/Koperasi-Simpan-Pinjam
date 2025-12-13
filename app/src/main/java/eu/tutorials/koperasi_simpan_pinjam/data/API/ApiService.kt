@@ -145,9 +145,7 @@ interface ApiService {
     @GET("/simpanan/user/{userId}")
     suspend fun getSimpananData(@Path("userId") userId: String): Response<SimpananResponse>
 
-    //membuat simpanan baru
-    @POST("/simpanan")
-    suspend fun addSimpanan(@Body request: PostSimpananRequest): Response<ResponseMessage>
+
 
     //PINJAMAN
     //dapet pinjaman yang sedang berjalan
@@ -161,13 +159,6 @@ interface ApiService {
     //apply pinjaman baru
     @POST("/pinjaman/apply")
     suspend fun ajukanPinjaman(@Body request: PostPinjamanRequest): Response<ResponseMessage>
-
-//    @POST("users/upload-profile/{id}")
-//    suspend fun uploadProfileImage(
-//        @Path("id") userId: String,
-//        @Part image: MultipartBody.Part
-//    ): Response<UploadResponse>
-
     @Multipart
     @POST("/user/{userId}/upload-profile-image")
     suspend fun uploadProfileImage(
@@ -179,6 +170,15 @@ interface ApiService {
     suspend fun getProfileImage(
         @Path("userId") userId: String
     ): Response<ResponseBody>
+    //membuat simpanan baru
+    @Multipart
+    @POST("/simpanan")
+    suspend fun addSimpanan(
+        @Part("userId") userId: RequestBody,
+        @Part("type") type: RequestBody,
+        @Part("amount") amount: RequestBody,
+        @Part simpananImage: MultipartBody.Part
+    ): Response<ResponseMessage>
 
     data class UploadResponse(
         val message: String,

@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.material3)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.play.services.cast.framework)
+    implementation(libs.ui)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -70,4 +71,5 @@ dependencies {
     implementation(libs.converter.moshi) // Notice the dash becomes a dot
     implementation(libs.okhttp.logging)
     implementation(libs.moshi.kotlin)
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }
