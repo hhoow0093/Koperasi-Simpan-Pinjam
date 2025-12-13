@@ -13,7 +13,8 @@ import retrofit2.http.Part
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-
+import okhttp3.ResponseBody
+import retrofit2.http.Multipart
 
 
 data class RegisterRequest(
@@ -161,17 +162,28 @@ interface ApiService {
     @POST("/pinjaman/apply")
     suspend fun ajukanPinjaman(@Body request: PostPinjamanRequest): Response<ResponseMessage>
 
-    @POST("users/upload-profile/{id}")
+//    @POST("users/upload-profile/{id}")
+//    suspend fun uploadProfileImage(
+//        @Path("id") userId: String,
+//        @Part image: MultipartBody.Part
+//    ): Response<UploadResponse>
+
+    @Multipart
+    @POST("/user/{userId}/upload-profile-image")
     suspend fun uploadProfileImage(
-        @Path("id") userId: String,
+        @Path("userId") userId: String,
         @Part image: MultipartBody.Part
     ): Response<UploadResponse>
 
+    @GET("/user/{userId}/profile-image")
+    suspend fun getProfileImage(
+        @Path("userId") userId: String
+    ): Response<ResponseBody>
+
     data class UploadResponse(
-        val success: Boolean,
         val message: String,
-        val imageUrl: String?
     )
+
 
     //HISTORI TRANSAKSI
     @GET("/transaksi/all/{userId}")

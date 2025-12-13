@@ -91,6 +91,7 @@ import java.text.DecimalFormat
 import kotlin.math.absoluteValue
 import kotlin.text.format
 import eu.tutorials.koperasi_simpan_pinjam.data.API.*
+import eu.tutorials.koperasi_simpan_pinjam.data.repository.user.UserNasabahRepository
 import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.Nasabah.DashboardNasabahViewModelFactory
 import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin.DashboardViewModelFactory
 
@@ -320,7 +321,7 @@ fun SimpananPage(viewModel: DashboardViewModel) {
                 Spacer(Modifier.height(16.dp))
 
                 var expandedSavingType by remember { mutableStateOf(false) }
-                var savingtype by remember { mutableStateOf("Browse Saving type") }
+                var savingtype by remember { mutableStateOf("Jenis Simpanan") }
                 var rawRupiahValue by remember { mutableStateOf("") }
 
                 ExposedDropdownMenuBox(
@@ -1125,7 +1126,15 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
     val context = LocalContext.current
     val userId = SessionManager.getUserId(context)
     val user by viewModel.userProfile.collectAsState()
+    var imageVersion by remember { mutableStateOf(System.currentTimeMillis()) }
 
+    val uploadSuccess by viewModel.uploadSuccess.collectAsState()
+
+    LaunchedEffect(uploadSuccess) {
+        if (uploadSuccess) {
+            imageVersion = System.currentTimeMillis() // force refresh
+        }
+    }
 
     println("user name is : ${user?.name}")
     println("user email is : ${user?.email}" )
@@ -1207,17 +1216,7 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
                         .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 ) {
                     AsyncImage(
-                        //kalo start dengan http, langsung load url
-                        //kalo start dengan / pake dengan /, maka akan diambil dengan nama file yang sama dengan nama user dengan ext .jpg
-                        model = if (user?.profile_image != null) {
-                            if (user!!.profile_image!!.startsWith("http")) {
-                                user!!.profile_image
-                            } else {
-                                "http://10.0.2.2:3000" + user!!.profile_image
-                            }
-                        } else {
-                            "https://via.placeholder.com/150"
-                        },
+                        model = "http://192.168.1.194:3000/user/${userId}/profile-image?v=$imageVersion",
                         contentDescription = "Foto Profil",
                         modifier = Modifier.fillMaxSize()
                     )
@@ -1346,9 +1345,11 @@ fun DashBoard(navController: NavHostController, modifier: Modifier = Modifier) {
         val newTitle = bottomItems.find { it.route == currentRoute }?.label ?: "Dashboard"
         currentTitle = newTitle
     }
+    val api = RetrofitClient.instance
+    val repository = remember { UserNasabahRepository(api) }
 
     val viewModel: DashboardViewModel = viewModel(
-        factory = DashboardNasabahViewModelFactory(context)
+        factory = DashboardNasabahViewModelFactory(repository)
     )
     Scaffold(
         topBar = {

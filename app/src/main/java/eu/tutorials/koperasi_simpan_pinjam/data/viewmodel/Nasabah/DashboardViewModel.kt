@@ -1,17 +1,22 @@
 package eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.Nasabah
 
 import android.content.Context
+import android.graphics.Bitmap
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eu.tutorials.koperasi_simpan_pinjam.data.API.*
+import eu.tutorials.koperasi_simpan_pinjam.data.repository.user.UserNasabahRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 
-class DashboardViewModel(context: Context) : ViewModel() {
+class DashboardViewModel(private val repository: UserNasabahRepository) : ViewModel() {
     private val api = RetrofitClient.instance
 
     //home and profile
@@ -38,6 +43,17 @@ class DashboardViewModel(context: Context) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    // image profile nasabah
+    private val _uploadResult = MutableLiveData<String>()
+    val uploadResult: LiveData<String> = _uploadResult
+
+    private val _profileImage = MutableLiveData<Bitmap>()
+    val profileImage: LiveData<Bitmap> = _profileImage
+
+    private val _uploadSuccess = MutableStateFlow(false)
+    val uploadSuccess = _uploadSuccess
+
 
     fun loadAllData(userId: String) {
         viewModelScope.launch {
@@ -103,31 +119,22 @@ class DashboardViewModel(context: Context) : ViewModel() {
             }
         }
     }
-
-    fun loadUserProfile(userId: String) {
+    fun uploadProfileImage(userId: String, bytes: ByteArray, fileName: String) {
         viewModelScope.launch {
-            try {
-                val res = api.getUserById(userId)
-                if (res.isSuccessful) _userProfile.value = res.body()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            repository.uploadProfileImage(userId, bytes, fileName)
+            _uploadSuccess.value = true
         }
     }
 
-    fun uploadProfileImage(userId: String, imageBytes: ByteArray, filename: String = "profile.jpg") {
+    fun loadProfileImage(userId: String) {
         viewModelScope.launch {
-            try {
-                val requestBody = imageBytes.toRequestBody("image/*".toMediaTypeOrNull())
-                val part = MultipartBody.Part.createFormData("image", filename, requestBody)
-                val res = api.uploadProfileImage(userId, part)
-                if (res.isSuccessful && res.body()?.imageUrl != null) {
-                    // reload user profile setelah update foto
-                    loadUserProfile(userId)
+            repository.getProfileImage(userId)
+                .onSuccess {
+                    _profileImage.value = it
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+                .onFailure {
+                    _uploadResult.value = it.message
+                }
         }
     }
 }
