@@ -15,6 +15,14 @@ import okhttp3.MultipartBody
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody
+
+fun String.toTextBody(): RequestBody =
+    this.toRequestBody("text/plain".toMediaType())
+
+fun Double.toTextBody(): RequestBody =
+    this.toString().toRequestBody("text/plain".toMediaType())
 
 class DashboardViewModel(private val repository: UserNasabahRepository) : ViewModel() {
     private val api = RetrofitClient.instance
@@ -91,15 +99,33 @@ class DashboardViewModel(private val repository: UserNasabahRepository) : ViewMo
         }
     }
 
-    fun postSimpanan(userId: String, type: String, amount: Double) {
+    fun postSimpanan(
+        userId: String,
+        type: String,
+        amount: Double,
+        imageBytes: ByteArray
+    ) {
         viewModelScope.launch {
             try {
-                val request = PostSimpananRequest(userId, type, amount)
-                val response = api.addSimpanan(request)
+                val imageRequest = imageBytes.toRequestBody("image/jpeg".toMediaType())
+
+                val imagePart = MultipartBody.Part.createFormData(
+                    "simpananImage",   // MUST match upload.single("simpananImage")
+                    "simpanan.jpg",
+                    imageRequest
+                )
+
+                val response = api.addSimpanan(
+                    userId = userId.toTextBody(),
+                    type = type.toTextBody(),
+                    amount = amount.toTextBody(),
+                    simpananImage = imagePart
+                )
+
                 if (response.isSuccessful) {
-                    // Refresh data to update UI automatically
                     loadAllData(userId)
                 }
+
             } catch (e: Exception) {
                 e.printStackTrace()
             }
