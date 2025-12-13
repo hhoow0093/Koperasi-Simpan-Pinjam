@@ -279,6 +279,56 @@ fun SimpananPage(viewModel: DashboardViewModel) {
 //        TransaksiSimpanan("S006", "05 Ags 2025", "Simpanan Wajib", 100000.0, TipeTransaksi.KREDIT)
 //    )
 
+    fun isSimpananExists(type: String): Boolean {
+        return daftarTransaksi.any {
+            it.keterangan.equals("Simpanan $type", ignoreCase = true) ||
+                    it.keterangan.equals(type, ignoreCase = true)
+        }
+    }
+
+    //buat cek apakah sudah bayar Wajib bulan ini\
+    fun isWajibPaidThisMonth(): Boolean {
+        val calendar = java.util.Calendar.getInstance()
+        val currentMonth = calendar.get(java.util.Calendar.MONTH) //0 = Jan, 11 = Des
+        val currentYear = calendar.get(java.util.Calendar.YEAR)
+
+        return daftarTransaksi.any { transaksi ->
+            //hanya cek transaksi "Wajib" dan tipenya KREDIT (Uang Masuk)
+            if (transaksi.keterangan.contains("Wajib", ignoreCase = true) && transaksi.tipe == TipeTransaksi.KREDIT) {
+                try {
+                    val rawDate = transaksi.tanggal
+                    val transCal = java.util.Calendar.getInstance()
+
+                    if (rawDate.contains("-") && rawDate.length >= 10) {
+                        //ambil 10 karakter pertama: "2025-12-13"
+                        val datePart = if(rawDate.contains("T")) rawDate.split("T")[0] else rawDate.substring(0, 10)
+                        val sdfIso = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                        val date = sdfIso.parse(datePart)
+                        if (date != null) transCal.time = date
+                    }
+                    //jika sudah diubah viewModel: "13 Des 2025"
+                    else {
+                        val sdfUi = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale("id", "ID"))
+                        val date = sdfUi.parse(rawDate)
+                        if (date != null) transCal.time = date
+                    }
+
+                    val transMonth = transCal.get(java.util.Calendar.MONTH)
+                    val transYear = transCal.get(java.util.Calendar.YEAR)
+
+                    return@any (transMonth == currentMonth && transYear == currentYear)
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    false
+                }
+            } else {
+                false
+            }
+        }
+    }
+
+
     val saldoPokok = remember(daftarTransaksi) {
         daftarTransaksi.filter { it.keterangan.contains("Pokok", ignoreCase = true) }
             .sumOf { if(it.tipe == TipeTransaksi.KREDIT) it.jumlah else -it.jumlah }
@@ -291,6 +341,7 @@ fun SimpananPage(viewModel: DashboardViewModel) {
         daftarTransaksi.filter { it.keterangan.contains("Sukarela", ignoreCase = true) }
             .sumOf { if(it.tipe == TipeTransaksi.KREDIT) it.jumlah else -it.jumlah }
     }
+
     val daftarJenisSimpanan = remember(saldoPokok, saldoWajib, saldoSukarela) {
         listOf(
             JenisSimpanan("Simpanan Pokok", saldoPokok, Icons.Filled.Shield, Color(0xFF1D336A)),
@@ -303,7 +354,7 @@ fun SimpananPage(viewModel: DashboardViewModel) {
 
     val pagerState = rememberPagerState(pageCount = {daftarJenisSimpanan.size})
 
-    // modal untuk pengajuan simpanan
+    //modal untuk pengajuan simpanan
     if(showPengajuanSimpananModalSheet.value){
         ModalBottomSheet(
             onDismissRequest = { showPengajuanSimpananModalSheet.value = false },
@@ -323,6 +374,8 @@ fun SimpananPage(viewModel: DashboardViewModel) {
                 var expandedSavingType by remember { mutableStateOf(false) }
                 var savingtype by remember { mutableStateOf("Jenis Simpanan") }
                 var rawRupiahValue by remember { mutableStateOf("") }
+                var isAmountReadOnly by remember { mutableStateOf(false) }
+                var errorMessage by remember { mutableStateOf<String?>(null) }
 
                 ExposedDropdownMenuBox(
                     expanded = expandedSavingType,
@@ -331,7 +384,7 @@ fun SimpananPage(viewModel: DashboardViewModel) {
                     OutlinedTextField(
                         value = savingtype,
                         onValueChange = {},
-                        label = { Text("Type") },
+                        label = { Text("Tipe Simpanan") },
                         modifier = Modifier
                             .menuAnchor()
                             .fillMaxWidth(),
@@ -350,53 +403,126 @@ fun SimpananPage(viewModel: DashboardViewModel) {
                         expanded = expandedSavingType,
                         onDismissRequest = { expandedSavingType = false }
                     ) {
+                        //buat opsi pokok (logikanya)
+                        val sudahBayarPokok = isSimpananExists("Pokok")
                         DropdownMenuItem(
-                            text = { Text(text = "Pokok", color = DeepBlue) },
+                            text = {
+                                Column {
+                                    Text(text = "Pokok", color = if(sudahBayarPokok) Color.Gray else DeepBlue)
+                                    if(sudahBayarPokok) Text("(Sudah Lunas)", fontSize = 10.sp, color = Color.Gray)
+                                }
+                            },
                             onClick = {
-                                savingtype = "Pokok"
-                                expandedSavingType = false
-                            }
+                                if (!sudahBayarPokok) {
+                                    savingtype = "Pokok"
+                                    rawRupiahValue = "100000" //nilai tetap 100rb
+                                    isAmountReadOnly = true
+                                    errorMessage = null
+                                    expandedSavingType = false
+                                } else {
+                                    Toast.makeText(context, "Simpanan Pokok hanya dibayar 1x", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            enabled = !sudahBayarPokok //disable jika sudah bayar
                         )
+
+                        //buat wajib (logikanya)
+                        val sudahBayarWajibBulanIni = isWajibPaidThisMonth()
                         DropdownMenuItem(
-                            text = { Text(text = "Wajib", color = DeepBlue) },
+                            text = {
+                                Column {
+                                    Text(text = "Wajib", color = if(sudahBayarWajibBulanIni) Color.Gray else DeepBlue)
+                                    if(sudahBayarWajibBulanIni) Text("(Sudah bayar bulan ini)", fontSize = 10.sp, color = Color.Gray)
+                                }
+                            },
                             onClick = {
-                                savingtype  = "Wajib"
-                                expandedSavingType = false
-                            }
+                                if (!sudahBayarWajibBulanIni) {
+                                    savingtype = "Wajib"
+                                    rawRupiahValue = "150000" //nilai tetap 150rb
+                                    isAmountReadOnly = true
+                                    errorMessage = null
+                                    expandedSavingType = false
+                                } else {
+                                    Toast.makeText(context, "Simpanan Wajib hanya 1x per bulan", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            enabled = !sudahBayarWajibBulanIni
                         )
+
+                        //buat sukarela (logikanya)
                         DropdownMenuItem(
                             text = { Text(text = "Sukarela", color = DeepBlue) },
                             onClick = {
-                                savingtype  = "Sukarela"
+                                savingtype = "Sukarela"
+                                rawRupiahValue = "" //biar user isi sendiri
+                                isAmountReadOnly = false
+                                errorMessage = null
                                 expandedSavingType = false
                             }
                         )
                     }
                 }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
                 OutlinedTextField(
                     value = rawRupiahValue,
                     onValueChange = { input ->
-                        rawRupiahValue = input.filter { it.isDigit() }
+                        //hanya update input jika mode Sukarela (tidak read-only)
+                        if (!isAmountReadOnly) {
+                            rawRupiahValue = input.filter { it.isDigit() }
+                        }
                     },
                     label = { Text("Jumlah Simpanan") },
+                    readOnly = isAmountReadOnly, //input jika Pokok/Wajib
+                    enabled = !isAmountReadOnly || rawRupiahValue.isNotEmpty(), //feedback
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Number
                     ),
                     visualTransformation = RupiahVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = TextStyle(
-                        color = Color.Black
+                        color = if (isAmountReadOnly) Color.Gray else Color.Black
                     ),
+                    supportingText = {
+                        if (savingtype == "Pokok") Text("Nominal Pokok wajib Rp 100.000")
+                        else if (savingtype == "Wajib") Text("Nominal Wajib wajib Rp 150.000")
+                    }
                 )
+
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
 
                 Spacer(Modifier.height(20.dp))
 
                 Button(
                     onClick = {
-                        val amount: Long =
-                            rawRupiahValue.toLongOrNull() ?: 0L
-                        if(userId!=null && amount>0){
+                        val amount: Long = rawRupiahValue.toLongOrNull() ?: 0L
+
+                        //validasi sebelum submit
+                        var isValid = true
+
+                        if (savingtype == "Jenis Simpanan") {
+                            errorMessage = "Pilih jenis simpanan terlebih dahulu"
+                            isValid = false
+                        } else if (amount <= 0) {
+                            errorMessage = "Jumlah tidak boleh nol"
+                            isValid = false
+                        } else if (savingtype == "Pokok" && isSimpananExists("Pokok")) {
+                            errorMessage = "Anda sudah membayar Simpanan Pokok"
+                            isValid = false
+                        } else if (savingtype == "Wajib" && isWajibPaidThisMonth()) {
+                            errorMessage = "Anda sudah membayar Simpanan Wajib bulan ini"
+                            isValid = false
+                        }
+
+                        if (isValid && userId != null) {
                             viewModel.postSimpanan(
                                 userId = userId,
                                 type = savingtype,
@@ -404,26 +530,20 @@ fun SimpananPage(viewModel: DashboardViewModel) {
                             )
                             showPengajuanSimpananModalSheet.value = false
                         }
-
-                        println("Submit amount = $amount")
-                        println("Formatted = ${amount.toRupiah()}")
-                        showPengajuanSimpananModalSheet.value = false
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = DeepBlue)
                 ) {
                     Text("Simpan", color = white)
                 }
-
                 TextButton(onClick = { showPengajuanSimpananModalSheet.value = false }) {
                     Icon(Icons.Default.Close, contentDescription = null)
                     Text("Batal")
                 }
-
             }
-
         }
     }
+
     LazyColumn (
         modifier = Modifier
             .fillMaxSize()
