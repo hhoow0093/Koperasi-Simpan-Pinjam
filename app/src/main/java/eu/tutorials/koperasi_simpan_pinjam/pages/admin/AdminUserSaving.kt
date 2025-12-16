@@ -1,5 +1,7 @@
 package eu.tutorials.koperasi_simpan_pinjam.pages.admin
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.tooling.preview.Devices
@@ -35,12 +37,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -48,29 +54,51 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import eu.tutorials.koperasi_simpan_pinjam.fragments.admin.AdminSearch
+import coil.compose.AsyncImage
+import eu.tutorials.koperasi_simpan_pinjam.data.API.RetrofitClient
+import eu.tutorials.koperasi_simpan_pinjam.data.API.TipeTransaksi
+import eu.tutorials.koperasi_simpan_pinjam.data.API.TransaksiSimpanan
+import eu.tutorials.koperasi_simpan_pinjam.data.repository.admin.UserRepositorySimpanan
+import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin.SimpananViewModelFactoryUser
+import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin.SimpananViewModelUser
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.DeepBlue
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.SoftLavender
 import eu.tutorials.koperasi_simpan_pinjam.ui.theme.white
 
+
+fun extractMonth(tanggal: String): String {
+    return tanggal.split(" ")[1] // "Des"
+}
 @Composable
 fun CardSavings(
     modifier: Modifier = Modifier,
-    header: String,
+    header: Double,
     subheader: String,
-    description: String,
+    description: TipeTransaksi,
+    tanggal: String,
+    buktiImageUrl: String?,
+    onViewBukti: (String) -> Unit,
+    onDelete: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
     val colors = listOf(
         Color(0xFF1E3A8A), // navy blue
@@ -99,14 +127,14 @@ fun CardSavings(
                     .padding(24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = header, fontSize = 30.sp)
+                Text(text = "Rp. $header,00", fontSize = 30.sp, )
             }
 
             // Main Info
             Column(
                 modifier = modifier.padding(horizontal = 24.dp, vertical = 14.dp)
             ) {
-                if(subheader == "Mandatory"){
+                if(subheader == "Wajib"){
                     Text(
                         text = subheader,
                         style = MaterialTheme.typography.titleLarge,
@@ -119,7 +147,7 @@ fun CardSavings(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     )
 
-                }else if(subheader == "Volunteer"){
+                }else if(subheader == "Sukarela"){
                     Text(
                         text = subheader,
                         style = MaterialTheme.typography.titleLarge,
@@ -156,20 +184,78 @@ fun CardSavings(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("01/03/2025")
-                    Text(modifier = Modifier.padding(top = 5.dp), text = description)
+                    Text(tanggal)
+
+                    Text(modifier = Modifier.padding(top = 5.dp), text = description.toString())
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                buktiImageUrl?.let { onViewBukti(it) }
+                            },
+                            enabled = buktiImageUrl != null,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Bukti Pembayaran")
+                        }
+
+                        TextButton(
+                            onClick = { showDeleteDialog = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "Hapus Simpanan",
+                                color = MaterialTheme.colorScheme.error,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+
                 }
             }
         }
+    }
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text("Hapus Simpanan?", color = Color.Black)
+            },
+            text = {
+                Text("Apakah Anda yakin ingin menghapus simpanan ini? Tindakan ini tidak dapat dibatalkan.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDelete()
+                    }
+                ) {
+                    Text("Hapus", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("Batal")
+                }
+            }
+        )
     }
 }
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBarWithDropDown(modifier: Modifier, searchEmail: MutableState<String>, navController: NavController){
+fun TopBarWithDropDown(modifier: Modifier, searchEmail: MutableState<String>, navController: NavController, name: String){
     var expandedSavingType by remember { mutableStateOf(false) }
-    var savingtype by remember { mutableStateOf("Browse Saving type") }
+    var savingtype by remember { mutableStateOf("Jenis Simpanan") }
     Column(modifier = modifier.fillMaxWidth()){
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically, modifier = modifier.fillMaxWidth()){
             Box(
@@ -194,7 +280,7 @@ fun TopBarWithDropDown(modifier: Modifier, searchEmail: MutableState<String>, na
                 }
 
             }
-            Text("Howard's Savings", fontSize = 25.sp)
+            Text("$name", fontSize = 25.sp)
         }
         ExposedDropdownMenuBox(
             expanded = expandedSavingType,
@@ -221,23 +307,23 @@ fun TopBarWithDropDown(modifier: Modifier, searchEmail: MutableState<String>, na
                 onDismissRequest = { expandedSavingType = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text(text = "Basic", color = DeepBlue) },
+                    text = { Text(text = "Pokok", color = DeepBlue) },
                     onClick = {
-                        savingtype = "Basic"
+                        savingtype = "Pokok"
                         expandedSavingType = false
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text(text = "Mandatory", color = DeepBlue) },
+                    text = { Text(text = "Wajib", color = DeepBlue) },
                     onClick = {
-                        savingtype  = "Mandatory"
+                        savingtype  = "Wajib"
                         expandedSavingType = false
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text(text = "Volunteer", color = DeepBlue) },
+                    text = { Text(text = "Sukarela", color = DeepBlue) },
                     onClick = {
-                        savingtype  = "Volunteer"
+                        savingtype  = "Sukarela"
                         expandedSavingType = false
                     }
                 )
@@ -247,84 +333,116 @@ fun TopBarWithDropDown(modifier: Modifier, searchEmail: MutableState<String>, na
     }
 }
 
-@Composable
-fun AdminUserSavingStatistics(modifier: Modifier = Modifier) {
-    val colors = listOf(
-        Color(0xFF1E3A8A), // navy blue
-        Color(0xFF2563EB), // dark blue
-        Color(0xFF7C3AED)  // deep purple
-    )
+fun buildBarsFromTransaksi(
+    transaksi: List<TransaksiSimpanan>
+): List<Bars> {
+    if (transaksi.isEmpty()) return emptyList()
 
-    ColumnChart(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(300.dp)
-            .padding(horizontal = 22.dp),
-        data = remember {
-            listOf(
-                Bars(
-                    label = "Jan",
-                    values = listOf(
-                        Bars.Data(label = "Mandatory", value = 50.0, color = SolidColor(colors[0])),
-                        Bars.Data(label = "Volunteer", value = 70.0, color = SolidColor(colors[1])),
-                        Bars.Data(label = "Basic", value = 70.0, color = SolidColor(colors[2]))
-                    ),
-                ),
-                Bars(
-                    label = "Feb",
-                    values = listOf(
-                        Bars.Data(label = "Mandatory", value = 80.0, color = SolidColor(colors[0])),
-                        Bars.Data(label = "Volunteer", value = 60.0, color = SolidColor(colors[1])),
-                        Bars.Data(label = "Basic", value = 70.0, color = SolidColor(colors[2]))
-                    ),
-                ),
-                Bars(
-                    label = "March",
-                    values = listOf(
-                        Bars.Data(label = "Mandatory", value = 50.0, color = SolidColor(colors[0])),
-                        Bars.Data(label = "Volunteer", value = 70.0, color = SolidColor(colors[1])),
-                        Bars.Data(label = "Basic", value = 70.0, color = SolidColor(colors[2]))
-                    ),
-                ),
-                Bars(
-                    label = "April",
-                    values = listOf(
-                        Bars.Data(label = "Mandatory", value = 80.0, color = SolidColor(colors[0])),
-                        Bars.Data(label = "Volunteer", value = 60.0, color = SolidColor(colors[1])),
-                        Bars.Data(label = "Basic", value = 70.0, color = SolidColor(colors[2]))
-                    ),
-                ),
-                Bars(
-                    label = "May",
-                    values = listOf(
-                        Bars.Data(label = "Mandatory", value = 80.0, color = SolidColor(colors[0])),
-                        Bars.Data(label = "Volunteer", value = 60.0, color = SolidColor(colors[1])),
-                        Bars.Data(label = "Basic", value = 70.0, color = SolidColor(colors[2]))
-                    ),
-                ),
-                Bars(
-                    label = "June",
-                    values = listOf(
-                        Bars.Data(label = "Mandatory", value = 80.0, color = SolidColor(colors[0])),
-                        Bars.Data(label = "Volunteer", value = 60.0, color = SolidColor(colors[1])),
-                        Bars.Data(label = "Basic", value = 70.0, color = SolidColor(colors[2]))
-                    ),
-                ),
+    return transaksi
+        .groupBy { extractMonth(it.tanggal) }
+        .map { (month, list) ->
+            Bars(
+                label = month,
+                values = list.map {
+                    Bars.Data(
+                        label = it.tipe.toString(),
+                        value = it.jumlah.toDouble(),
+                        color = SolidColor(Color(0xFF2563EB))
+                    )
+                }
             )
-        },
-        barProperties = BarProperties(
-            spacing = 3.dp,
-        ),
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-    )
+        }
+        .filter { it.values.isNotEmpty() } // 🔥 CRITICAL
 }
 
 @Composable
-fun AdminUserSavingPage(navController: NavHostController) {
-    val scrollState = rememberScrollState()
+fun AdminUserSavingStatistics(
+    transaksi: List<TransaksiSimpanan>,
+    modifier: Modifier = Modifier
+) {
+    val barsData = remember(transaksi) {
+        buildBarsFromTransaksi(transaksi)
+    }
+
+    if (barsData.isEmpty() || barsData.all { it.values.isEmpty() }) {
+        // SAFE fallback UI
+        Box(
+            modifier = modifier,
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Belum ada data transaksi")
+        }
+        return
+    }
+
+    ColumnChart(
+        modifier = modifier.border(2.dp, Color.Gray).padding(15.dp),
+        data = barsData,
+        barProperties = BarProperties(spacing = 3.dp)
+    )
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AdminUserSavingPage(navController: NavHostController, userId: String, viewModel: SimpananViewModelUser) {
+
+    LaunchedEffect(userId) {
+        viewModel.fetchAllTransaksiSimpanan(userId)
+        viewModel.getUserName(userId)
+    }
+
+    val TransaksiSimpanan by viewModel.TransaksiSimpananList.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val username by viewModel.name.collectAsState()
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var showImageSheet by remember { mutableStateOf(false) }
+    var selectedImageUrl by remember { mutableStateOf<String?>(null) }
+
+    if (showImageSheet && selectedImageUrl != null) {
+        ModalBottomSheet(
+            onDismissRequest = { showImageSheet = false },
+            sheetState = sheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Bukti Pembayaran",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.Black
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                AsyncImage(
+                    model = "http://192.168.1.194:3000$selectedImageUrl",
+                    contentDescription = "Bukti Pembayaran",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(350.dp)
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                Button(
+                    onClick = { showImageSheet = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Tutup")
+                }
+            }
+        }
+    }
+
+
+
+
     val searchEmail = remember { mutableStateOf("") }
 
     Box(
@@ -344,62 +462,87 @@ fun AdminUserSavingPage(navController: NavHostController) {
                     .background(MaterialTheme.colorScheme.surface)
                     .padding(bottom = 25.dp),
                 searchEmail = searchEmail,
-                navController = navController
+                navController = navController,
+                name = username?: ""
             )
-
-            AdminUserSavingStatistics(
-                modifier = Modifier
-                    .border(2.dp, Color.Gray)
-                    .fillMaxWidth()
-                    .height(300.dp)
-                    .padding(vertical = 35.dp, horizontal = 10.dp)// half screen
-            )
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(scrollState)
                     .padding(top = 10.dp)
-            ){
-                Text("Payment History", fontSize = 25.sp)
-
-                repeat(2) {
-                    CardSavings(
-                        modifier = Modifier,
-                        header = "$ 2.00",
-                        subheader = "Mandatory",
-                        description = "Debit"
+            ) {
+                item {
+                    AdminUserSavingStatistics(
+                        transaksi = TransaksiSimpanan,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
                     )
-                }
-                repeat(2) {
-                    CardSavings(
-                        modifier = Modifier,
-                        header = "$ 2.20",
-                        subheader = "Volunteer",
-                        description = "Cash"
-                    )
-                }
-                repeat(2) {
-                    CardSavings(
-                        modifier = Modifier,
-                        header = "$ 3.20",
-                        subheader = "Basic",
-                        description = "Credit"
-                    )
+                    Text("Riwayat transaksi", fontSize = 25.sp, modifier = Modifier.padding(top = 10.dp))
                 }
 
+                when {
+                    isLoading -> {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                    }
+
+                    errorMessage != null -> {
+                        item {
+                            Text("Error: $errorMessage")
+                        }
+                    }
+
+                    else -> {
+                        items(
+                            items = TransaksiSimpanan,
+                            key = { it.id!! }
+                        ) { transaksi ->
+                            CardSavings(
+                                header = transaksi.jumlah,
+                                subheader = transaksi.keterangan,
+                                description = transaksi.tipe,
+                                tanggal = transaksi.tanggal,
+                                buktiImageUrl = transaksi.buktiImageUrl,
+                                onViewBukti = { imageUrl ->
+                                    selectedImageUrl = imageUrl
+                                    showImageSheet = true
+                                },
+                                onDelete = {
+                                    viewModel.DeleteSimpanan(
+                                        userId = userId,
+                                        simpananId = transaksi.id!!
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
             }
+
 
         }
 
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true, name = "Admin saving user", showSystemUi = true, device = Devices.PIXEL_5)
 @Composable
 fun DashboardAdminSavingPreview() {
     KoperasiSimpanPinjamTheme {
+        val userId = "693d399289449e4a8e0698b1"
+        val repository = UserRepositorySimpanan(api = RetrofitClient.instance)
+        val viewModel: SimpananViewModelUser = viewModel(
+            factory = SimpananViewModelFactoryUser(repository)
+        )
         val navController = rememberNavController()
-        AdminUserSavingPage(navController)
+        AdminUserSavingPage(navController = navController, userId = userId, viewModel = viewModel)
     }
 }
 

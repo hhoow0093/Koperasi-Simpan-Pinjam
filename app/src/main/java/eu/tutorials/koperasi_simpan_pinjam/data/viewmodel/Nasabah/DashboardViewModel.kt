@@ -2,6 +2,8 @@ package eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.Nasabah
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
+import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -163,4 +165,54 @@ class DashboardViewModel(private val repository: UserNasabahRepository) : ViewMo
                 }
         }
     }
+
+    fun bayarAngsuran(
+        context: Context,
+        userId: String,
+        pinjamanId: String,
+        imageUri: Uri
+    ) {
+        viewModelScope.launch {
+            try {
+                val inputStream = context.contentResolver.openInputStream(imageUri)
+                val bytes = inputStream?.readBytes()
+
+                if (bytes == null) {
+                    Toast.makeText(context, "Gagal membaca gambar", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                val requestBody = bytes.toRequestBody("image/jpeg".toMediaType())
+
+                val imagePart = MultipartBody.Part.createFormData(
+                    name = "image", // MUST match upload.single("image")
+                    filename = "angsuran_${System.currentTimeMillis()}.jpg",
+                    body = requestBody
+                )
+
+                val response = api.bayarAngsuran(
+                    userId = userId,
+                    pinjamanId = pinjamanId,
+                    image = imagePart
+                )
+
+                if (response.isSuccessful) {
+                    Toast.makeText(context, "Angsuran berhasil dikirim", Toast.LENGTH_SHORT).show()
+                    _pinjamanAktif.value = null
+                    loadAllData(userId)
+                } else {
+                    Toast.makeText(
+                        context,
+                        response.errorBody()?.string() ?: "Gagal mengirim angsuran",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "Terjadi kesalahan", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
 }

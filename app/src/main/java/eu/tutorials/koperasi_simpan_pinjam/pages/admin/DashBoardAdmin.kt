@@ -51,14 +51,14 @@ fun manageUserCard(modifier: Modifier, userCount : String, errorMessage: String?
                     .padding(24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Manage Users", fontSize = 30.sp)
+                Text(text = "Kelola Akun", fontSize = 30.sp)
                 IconButton(onClick = { navController.navigate("manageuser") }) {
-                    Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "Manage Users")
+                    Icon(imageVector = Icons.Default.ArrowForward, contentDescription = "Kelola Akun")
                 }
             }
 
             Column(modifier = modifier.padding(horizontal = 24.dp, vertical = 14.dp)) {
-                Text(text = "Amount of Users", style = MaterialTheme.typography.titleLarge)
+                Text(text = "Jumlah Akun", style = MaterialTheme.typography.titleLarge)
                 if (!errorMessage.isNullOrEmpty())
                     Text(text = "Error: $errorMessage", color = Color.Red)
                 else
@@ -83,10 +83,10 @@ fun pieChart(){
     var data by remember {
         mutableStateOf(
             listOf(
-                Pie(label = "Net Profit", data = 20.0, color = colors[0], selectedColor = colors[3]),
-                Pie(label = "Gross Profit", data = 45.0, color = colors[1], selectedColor = colors[4]),
-                Pie(label = "Corporate Finance", data = 65.0, color = colors[2], selectedColor = colors[5]),
-                Pie(label = "Loss", data = 15.0, color = colors[6], selectedColor = colors[7])
+                Pie(label = "Keuntungan bersih", data = 20000.0, color = colors[0], selectedColor = colors[3]),
+                Pie(label = "Kuntungan kotor", data = 45000.0, color = colors[1], selectedColor = colors[4]),
+                Pie(label = "Jumlah Uang Koperasi", data = 65000.0, color = colors[2], selectedColor = colors[5]),
+                Pie(label = "Rugi", data = 15000.0, color = colors[6], selectedColor = colors[7])
 
                 ),
             )
@@ -138,7 +138,7 @@ fun pieChart(){
                         color = Color.White
                     )
                     Text(
-                        text = "$${pie.data}",
+                        text = "Rp. ${pie.data},00",
                         style = MaterialTheme.typography.headlineMedium,
                         color = Color.White
                     )
@@ -227,9 +227,9 @@ fun ContentDashboard(
                 modifier = modifier ,
                 navController = navController,
                 routeName = "AdminTransaction",
-                Header = "User Money Report",
-                Subheader= "Transaction",
-                description= "Saving / Loans"
+                Header = "Keuangan anggota",
+                Subheader= "Tansaksi",
+                description= "Simpanan / Pinjaman"
             )
 
         }

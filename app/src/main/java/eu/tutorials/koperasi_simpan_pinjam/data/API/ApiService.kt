@@ -60,7 +60,9 @@ data class TransaksiSimpanan(
     val tanggal: String,
     val keterangan: String,
     val jumlah: Double,
-    val tipe: TipeTransaksi
+    val tipe: TipeTransaksi,
+    val buktiImageId: String,
+    val buktiImageUrl: String
 )
 
 data class SimpananResponse(
@@ -76,6 +78,8 @@ data class PostSimpananRequest(
 
 //Untuk PINJAMAN
 data class PinjamanAktif(
+    val id: String,
+    val size: Int,
     val pokok: Double,
     val bunga: Double,
     val totalCicilanPerBulan: Double,
@@ -98,6 +102,8 @@ data class PostPinjamanRequest(
     val tenor: Int
 )
 
+
+
 //HISTORI TRANSAKSI
 enum class TipeHistori { SIMPANAN_MASUK, SIMPANAN_KELUAR, PENGAJUAN_PINJAMAN, BAYAR_ANGSURAN, BAYAR_DENDA }
 
@@ -109,9 +115,74 @@ data class ItemHistori(
     val tipe: TipeHistori
 )
 
+data class Pinjaman(
+    val dendaKeterlambatan: Double,
+    val _id : String,
+    val userId:String,
+    val jumlah: Double,
+    val tenor: Int,
+    val status: String,
+    val bunga: Double,
+    val totalCicilanPerBulan: Double,
+    val sisaAngsuran: Int,
+    val totalAngsuran: Int,
+    val createdAt: Date,
+)
 
+data class responseListPinjamanNasabah(
+    val nasabahLoans: List<Pinjaman>,
+    val error: String,
+    val message: String
+)
+
+data class PembayaranLoanDto(
+    val _id: String,
+    val loanId: String,
+    val userId: String,
+    val BuktiImagePembayaranDalamPinjamanId: String?,
+    val createdAt: String
+)
+
+data class MLResult(
+    @SerializedName("default_prediction")
+    val defaultPrediction: Int,
+
+    @SerializedName("risk_probability")
+    val riskProbability: Double
+)
+
+data class MLApiResponse(
+    val success: Boolean,
+
+    @SerializedName("ml_result")
+    val mlResult: MLResult
+)
+data class MLRequest(
+    @SerializedName("age")
+    val age: Float,
+
+    @SerializedName("income_per_month")
+    val incomePerMonth: Float,
+
+    @SerializedName("credit_point")
+    val creditPoint: Float,
+
+    @SerializedName("loan_occurrences_per_month")
+    val loanOccurrencesPerMonth: Float
+)
 
 interface ApiService {
+    @POST("/prediksi-machine-learning")
+    suspend fun predictDefault(
+        @Body request: MLRequest
+    ): Response<MLApiResponse>
+
+
+    @GET("pembayaran-loan/by-loan/{loanId}")
+    suspend fun getPembayaranLoanByLoanId(
+        @Path("loanId") loanId: String
+    ): Response<List<PembayaranLoanDto>>
+
     @POST("/users/register")
     suspend fun registerUser(@Body user: RegisterRequest): Response<ResponseMessage>
 
@@ -149,6 +220,18 @@ interface ApiService {
 
     //PINJAMAN
     //dapet pinjaman yang sedang berjalan
+
+    @Multipart
+    @POST("/pinjaman/bayarAngsuran/{userId}/{pinjamanId}")
+    suspend fun bayarAngsuran(
+        @Path("userId") userId: String,
+        @Path("pinjamanId") pinjamanId: String,
+        @Part image: MultipartBody.Part
+    ): Response<MyResponse>
+
+    @GET("/pinjaman/list/{userId}")
+    suspend fun getPinjamanList(@Path("userId") userId: String): Response<responseListPinjamanNasabah>
+
     @GET("/pinjaman/active/{userId}")
     suspend fun getPinjamanAktif(@Path("userId") userId: String): Response<PinjamanAktif>
 
@@ -159,6 +242,7 @@ interface ApiService {
     //apply pinjaman baru
     @POST("/pinjaman/apply")
     suspend fun ajukanPinjaman(@Body request: PostPinjamanRequest): Response<ResponseMessage>
+
     @Multipart
     @POST("/user/{userId}/upload-profile-image")
     suspend fun uploadProfileImage(
@@ -184,14 +268,54 @@ interface ApiService {
         val message: String,
     )
 
+    @DELETE("/simpanan/{simpananId}")
+    suspend fun deleteSimpananFromAdmin(
+        @Path("simpananId") simpananId: String?
+    ): Response<ResponseMessageAfterDeleteSimpananFromAdmin>
+
+    @PUT("pinjaman/approve/{loanId}")
+    suspend fun approveLoan(
+        @Path("loanId") loanId: String,
+        @Body body: ApproveLoanRequest
+    ): Response<LoanResponseApprove>
+
+    @PUT("pinjaman/reject/{loanId}")
+    suspend fun rejectLoan(
+        @Path("loanId") loanId: String,
+        @Body body: RejectLoanRequest
+    ): Response<MyResponse>
+
+
 
     //HISTORI TRANSAKSI
     @GET("/transaksi/all/{userId}")
     suspend fun getAllHistori(@Path("userId") userId: String): Response<List<ItemHistori>>
 }
 
+data class LoanResponseApprove(
+    val message: String,
+    val loan: Pinjaman
+)
+
+data class RejectLoanRequest(
+    val reason: String,
+)
+
+data class ApproveLoanRequest(
+    val bungaPersen: Int,
+    val dendaPersen: Int
+)
 data class ResponseMessage(
     val message: String,
     val isAdmin: Boolean,
     val user_id: String
+)
+
+data class ResponseMessageAfterDeleteSimpananFromAdmin(
+    val success: Boolean,
+    val message: String
+)
+
+data class MyResponse(
+    val message: String
 )

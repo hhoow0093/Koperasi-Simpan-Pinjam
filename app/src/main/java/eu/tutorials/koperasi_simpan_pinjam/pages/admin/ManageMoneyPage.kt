@@ -176,7 +176,7 @@ fun ExpandableCardMoney(
             Column(
                 modifier = modifier.padding(horizontal = 24.dp, vertical = 14.dp)
             ) {
-                if(subheader == "Spend"){
+                if(subheader == "Keluar"){
                     Text(
                         text = subheader,
                         style = MaterialTheme.typography.titleLarge,
@@ -356,14 +356,14 @@ fun ManageMoneyPage(navController: NavHostController){
                         onDismissRequest = { expandedType = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text(text = "Spend", color = DeepBlue) },
+                            text = { Text(text = "Keluar", color = DeepBlue) },
                             onClick = {
                                 type = "Spend"
                                 expandedType = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text(text = "Earn", color = DeepBlue) },
+                            text = { Text(text = "Masuk", color = DeepBlue) },
                             onClick = {
                                 type = "Earn"
                                 expandedType = false
@@ -421,17 +421,17 @@ fun ManageMoneyPage(navController: NavHostController){
             repeat(2){
                 ExpandableCardMoney(
                     modifier = Modifier,
-                    header = "Spending title",
-                    subheader = "Spend",
-                    description = "for maintaining building",
+                    header = "Judul pengeluaran",
+                    subheader = "Keluar",
+                    description = "bayar PLN",
                 )
             }
             repeat(2){
                 ExpandableCardMoney(
                     modifier = Modifier,
-                    header = "Earn",
-                    subheader = "Earn",
-                    description = "for saving money",
+                    header = "Judul masukan",
+                    subheader = "Masuk",
+                    description = "pembayaran denda"
                 )
             }
         }

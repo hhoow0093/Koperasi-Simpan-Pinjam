@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Help
+import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Close
@@ -101,7 +102,7 @@ fun DrawerNavigationAdmin(
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ){
-                Text("Announcement", fontSize = 22.sp, color = DeepBlue)
+                Text("Penguguman", fontSize = 22.sp, color = DeepBlue)
                 Spacer(Modifier.height(16.dp))
                 var message by remember { mutableStateOf("") }
                 var title by remember { mutableStateOf("") }
@@ -109,7 +110,7 @@ fun DrawerNavigationAdmin(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
+                    label = { Text("Judul") },
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = TextStyle(color = DeepBlue, fontSize = 16.sp),
                 )
@@ -117,7 +118,7 @@ fun DrawerNavigationAdmin(
                 OutlinedTextField(
                     value = message,
                     onValueChange = { message = it },
-                    label = { Text("Description") },
+                    label = { Text("Deskripsi") },
                     modifier = Modifier.fillMaxWidth().height(250.dp),
                     textStyle = TextStyle(color = DeepBlue, fontSize = 16.sp),
                 )
@@ -132,12 +133,12 @@ fun DrawerNavigationAdmin(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = DeepBlue)
                 ) {
-                    Text("Send Announcement", color = white)
+                    Text("Kirim Penguguman", color = white)
                 }
 
                 TextButton(onClick = { showNotification.value = false }) {
                     Icon(Icons.Default.Close, contentDescription = null)
-                    Text("Close")
+                    Text("Tutup")
                 }
 
             }
@@ -177,7 +178,7 @@ fun DrawerNavigationAdmin(
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                     NavigationDrawerItem(
-                        label = { Text("Manage Users") },
+                        label = { Text("Kelola Akun user") },
                         selected = false,
                         icon = { Icon(Icons.Default.People, contentDescription = "Manage Users") },
                         onClick = {
@@ -188,7 +189,7 @@ fun DrawerNavigationAdmin(
                     )
 
                     NavigationDrawerItem(
-                        label = { Text("Finance") },
+                        label = { Text("Keuangan") },
                         selected = false,
                         icon = { Icon(Icons.Default.AttachMoney, contentDescription = "Finance") },
                         onClick = {
@@ -199,11 +200,22 @@ fun DrawerNavigationAdmin(
                     )
 
                     NavigationDrawerItem(
-                        label = { Text("Send Notification") },
+                        label = { Text("Buat Notifikasi") },
                         selected = false,
                         icon = { Icon(Icons.AutoMirrored.Outlined.Help, contentDescription = "Send Notification") },
                         onClick = {
                             showNotification.value = true
+                            scope.launch { drawerState.close() }
+                        },
+                        colors = navItemColors
+                    )
+
+                    NavigationDrawerItem(
+                        label = { Text("Machine learning") },
+                        selected = false,
+                        icon = { Icon(Icons.Default.Accessibility, contentDescription = "Machine learning feature") },
+                        onClick = {
+                            navController.navigate(route = "FiturMachineLearning")
                             scope.launch { drawerState.close() }
                         },
                         colors = navItemColors
@@ -218,7 +230,7 @@ fun DrawerNavigationAdmin(
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                     NavigationDrawerItem(
-                        label = { Text("Dashboard") },
+                        label = { Text("Halaman Utama") },
                         selected = false,
                         icon = { Icon(Icons.Default.Dashboard, contentDescription = null) },
                         onClick = {
@@ -228,7 +240,7 @@ fun DrawerNavigationAdmin(
                         colors = navItemColors
                     )
                     NavigationDrawerItem(
-                        label = { Text("Report") },
+                        label = { Text("Laporan") },
                         selected = false,
                         icon = { Icon(Icons.Default.Description, contentDescription = null) },
                         onClick = {
@@ -238,7 +250,7 @@ fun DrawerNavigationAdmin(
                         colors = navItemColors
                     )
                     NavigationDrawerItem(
-                        label = { Text("Finace management") },
+                        label = { Text("Mengelola Keunagan koperasi") },
                         selected = false,
                         icon = { Icon(Icons.Default.Money, contentDescription = null) },
                         onClick = {
@@ -251,7 +263,7 @@ fun DrawerNavigationAdmin(
                     Spacer(modifier = Modifier.height(12.dp))
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     NavigationDrawerItem(
-                        label = { Text("Logout") },
+                        label = { Text("Keluar") },
                         selected = false,
                         icon = { Icon(Icons.Default.ExitToApp, contentDescription = null) },
                         onClick = { navController.navigate(route = "authentication") },

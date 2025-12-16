@@ -97,6 +97,7 @@ import eu.tutorials.koperasi_simpan_pinjam.data.API.*
 import eu.tutorials.koperasi_simpan_pinjam.data.repository.user.UserNasabahRepository
 import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.Nasabah.DashboardNasabahViewModelFactory
 import eu.tutorials.koperasi_simpan_pinjam.data.viewmodel.admin.DashboardViewModelFactory
+import java.util.Locale
 
 
 // Data class untuk item di bottom bar
@@ -616,6 +617,8 @@ fun PinjamanPage(viewModel: DashboardViewModel) {
     val daftarPengajuan by viewModel.pengajuanList.collectAsState()
     val pinjamanAktif by viewModel.pinjamanAktif.collectAsState()
 
+    println("pinjaman aktif sekarang adalah : ${pinjamanAktif}")
+
     var namaFileDipilih by remember { mutableStateOf<String?>(null) }
     var uriDipilih by remember { mutableStateOf<Uri?>(null) }
     val sheetState = rememberModalBottomSheetState()
@@ -707,7 +710,7 @@ fun PinjamanPage(viewModel: DashboardViewModel) {
                     "Pilih Sumber Gambar",
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(bottom = 16.dp),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = DeepBlue
                 )
 
                 //opsi kamera
@@ -744,7 +747,7 @@ fun PinjamanPage(viewModel: DashboardViewModel) {
                     Text(
                         "Ambil Foto dari Kamera",
                         fontSize = 18.sp,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = DeepBlue
                     )
                 }
                 //opsi galeri
@@ -777,7 +780,7 @@ fun PinjamanPage(viewModel: DashboardViewModel) {
                     Text(
                         "Pilih dari Galeri",
                         fontSize = 18.sp,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = DeepBlue
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
@@ -839,7 +842,29 @@ fun PinjamanPage(viewModel: DashboardViewModel) {
                     tagihan = currentInvoice,
                     namaFile = namaFileDipilih,
                     onUnggahBuktiClick = { isSheetOpen = true },
-                    onKirimBuktiClick = { uriDipilih?.let { println("Mulai mengunggah file: ${getFileName(context, it)}") } },
+                    // kirim ke db
+                    onKirimBuktiClick = {
+                        if (uriDipilih == null) {
+                            Toast.makeText(context, "Silakan pilih bukti pembayaran", Toast.LENGTH_SHORT).show()
+                            return@KartuTagihan
+                        }
+
+                        if (userId == null || pinjamanAktif == null) {
+                            Toast.makeText(context, "Data pinjaman tidak valid", Toast.LENGTH_SHORT).show()
+                            return@KartuTagihan
+                        }
+
+                        viewModel.bayarAngsuran(
+                            context = context,
+                            userId = userId,
+                            pinjamanId = pinjamanAktif!!.id, // <-- loan ID
+                            imageUri = uriDipilih!!
+                        )
+
+                        // reset UI
+                        uriDipilih = null
+                        namaFileDipilih = null
+                    },
                     onBatalPilihFileClick = { uriDipilih = null; namaFileDipilih = null }
                 )
             }
@@ -906,7 +931,7 @@ fun PinjamanPage(viewModel: DashboardViewModel) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     "Tenor: ${tenorPinjaman.toInt()} bulan",
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = Color.Black
                 )
                 Slider(
                     value = tenorPinjaman,
@@ -916,40 +941,48 @@ fun PinjamanPage(viewModel: DashboardViewModel) {
                 )
                 Button(
                     onClick = {
-                        if (jumlahPinjamanBaru.isNotEmpty() && userId != null) {
-                            viewModel.postPinjaman(
-                                userId = userId,
-                                amount = jumlahPinjamanBaru.toDouble(),
-                                tenor = tenorPinjaman.toInt()
-                            )
-//                            daftarPengajuan.add(
-//                                PengajuanPinjaman(
-//                                    id = "PNJ" + (daftarPengajuan.size + 1)
-//                                        .toString().padStart(3, '0'),
-//                                    tanggal = "13 Okt 2025",
-//                                    jumlah = jumlahPinjamanBaru.toDouble(),
-//                                    tenor = tenorPinjaman.toInt(),
-//                                    status = "Proses"
-//                                )
-//                            )
-                            val formattedJumlah = NumberFormat.getCurrencyInstance(
-                                java.util.Locale(
-                                    "in",
-                                    "ID"
-                                )
-                            ).format(jumlahPinjamanBaru.toDouble())
-                            showNotification(
-                                context = context,
-                                channelId = PENGAJUAN_CHANNEL_ID,
-                                notificationId = System.currentTimeMillis().toInt(), // ID unik agar notifikasi tidak menimpa satu sama lain
-                                title = "Pengajuan Pinjaman Terkirim",
-                                content = "Pengajuan Anda sebesar $formattedJumlah sedang dalam proses review oleh tim kami."
-                            )
+                        when {
+                            (pinjamanAktif?.size ?: 0) >= 1 -> {
+                                Toast.makeText(
+                                    context,
+                                    "Anda masih memiliki pinjaman aktif. Selesaikan terlebih dahulu sebelum mengajukan pinjaman baru.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
 
-                            jumlahPinjamanBaru = ""
-                            tenorPinjaman = 6f
+                            jumlahPinjamanBaru.isEmpty() || userId == null -> {
+                                Toast.makeText(
+                                    context,
+                                    "Jumlah pinjaman tidak valid",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+
+                            else -> {
+                                viewModel.postPinjaman(
+                                    userId = userId,
+                                    amount = jumlahPinjamanBaru.toDouble(),
+                                    tenor = tenorPinjaman.toInt()
+                                )
+
+                                val formattedJumlah = NumberFormat
+                                    .getCurrencyInstance(Locale("in", "ID"))
+                                    .format(jumlahPinjamanBaru.toDouble())
+
+                                showNotification(
+                                    context = context,
+                                    channelId = PENGAJUAN_CHANNEL_ID,
+                                    notificationId = System.currentTimeMillis().toInt(),
+                                    title = "Pengajuan Pinjaman Terkirim",
+                                    content = "Pengajuan Anda sebesar $formattedJumlah sedang dalam proses review oleh tim kami."
+                                )
+
+                                jumlahPinjamanBaru = ""
+                                tenorPinjaman = 6f
+                            }
                         }
-                    },
+                    }
+,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
@@ -1002,7 +1035,7 @@ fun PinjamanPage(viewModel: DashboardViewModel) {
                             )
                             Text(
                                 "Tenor: ${pengajuan.tenor} bulan",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color.Black
                             )
                         }
                         Text(
@@ -1010,6 +1043,7 @@ fun PinjamanPage(viewModel: DashboardViewModel) {
                             color = when (pengajuan.status) {
                                 "Disetujui" -> Color(0xFF2E7D32) // Hijau khusus untuk disetujui
                                 "Ditolak" -> MaterialTheme.colorScheme.error // Gunakan warna error untuk ditolak
+                                "Lunas" -> Color.Gray
                                 else -> Color(0xFFFFA000) // Warna khusus untuk proses
                             },
                             fontWeight = FontWeight.Bold
@@ -1200,7 +1234,7 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            title = { Text(text = "Konfirmasi Logout") },
+            title = { Text(text = "Konfirmasi Logout", color = DeepBlue) },
             text = { Text(text = "Apakah Anda yakin ingin keluar dari akun?") },
             confirmButton = {
                 TextButton(
@@ -1610,19 +1644,6 @@ fun InfoPinjamanRow(label: String, value: String, isHighlight: Boolean = false) 
     }
 }
 
-//UNTUK BAGIAN TAB SIMPANAN
-//enum class TipeTransaksi{
-//    KREDIT, DEBIT
-//}
-//
-//data class TransaksiSimpanan(
-//    val id: String,
-//    val tanggal: String,
-//    val keterangan: String,
-//    val jumlah: Double,
-//    val tipe: TipeTransaksi //kredit(masuk) atau debit(keluar)
-//)
-
 data class JenisSimpanan(
     val nama: String,
     val saldo: Double,
@@ -1764,7 +1785,7 @@ fun KartuTagihan(
                     Text(
                         "File Terpilih:",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        color = DeepBlue
                     )
                     Row(
                         modifier = Modifier
@@ -1976,13 +1997,13 @@ fun InfoRow(label: String, value: String){
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant // Gunakan warna yang lebih pudar
+            color = DeepBlue // Gunakan warna yang lebih pudar
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = DeepBlue
         )
     }
 }

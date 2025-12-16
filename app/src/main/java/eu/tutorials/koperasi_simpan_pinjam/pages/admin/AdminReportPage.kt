@@ -107,48 +107,48 @@ fun AdminUserProfitStatistics(modifier: Modifier = Modifier) {
                 Bars(
                     label = "Jan",
                     values = listOf(
-                        Bars.Data(label = "Profit", value = 50.0, color = SolidColor(colors[0])),
-                        Bars.Data(label = "loss", value = 30.0, color = SolidColor(colors[1])),
+                        Bars.Data(label = "Keuntungan", value = 50.0, color = SolidColor(colors[0])),
+                        Bars.Data(label = "Kerugian", value = 30.0, color = SolidColor(colors[1])),
 
                         ),
                 ),
                 Bars(
                     label = "Feb",
                     values = listOf(
-                        Bars.Data(label = "Profit", value = 20.0, color = SolidColor(colors[0])),
-                        Bars.Data(label = "loss", value = 25.0, color = SolidColor(colors[1])),
+                        Bars.Data(label = "Keuntungan", value = 20.0, color = SolidColor(colors[0])),
+                        Bars.Data(label = "Kerugian", value = 25.0, color = SolidColor(colors[1])),
 
                         ),
                 ),
                 Bars(
                     label = "March",
                     values = listOf(
-                        Bars.Data(label = "Profit", value = 10.0, color = SolidColor(colors[0])),
-                        Bars.Data(label = "loss", value = 15.0, color = SolidColor(colors[1])),
+                        Bars.Data(label = "Keuntungan", value = 10.0, color = SolidColor(colors[0])),
+                        Bars.Data(label = "Kerugian", value = 15.0, color = SolidColor(colors[1])),
 
                         ),
                 ),
                 Bars(
                     label = "April",
                     values = listOf(
-                        Bars.Data(label = "Profit", value = 10.0, color = SolidColor(colors[0])),
-                        Bars.Data(label = "loss", value = 23.0, color = SolidColor(colors[1])),
+                        Bars.Data(label = "Keuntungan", value = 10.0, color = SolidColor(colors[0])),
+                        Bars.Data(label = "Kerugian", value = 23.0, color = SolidColor(colors[1])),
 
                         ),
                 ),
                 Bars(
                     label = "May",
                     values = listOf(
-                        Bars.Data(label = "Profit", value = 5.0, color = SolidColor(colors[0])),
-                        Bars.Data(label = "loss", value = 45.0, color = SolidColor(colors[1])),
+                        Bars.Data(label = "Keuntungan", value = 5.0, color = SolidColor(colors[0])),
+                        Bars.Data(label = "Kerugian", value = 45.0, color = SolidColor(colors[1])),
 
                         ),
                 ),
                 Bars(
                     label = "June",
                     values = listOf(
-                        Bars.Data(label = "Profit", value = 3.0, color = SolidColor(colors[0])),
-                        Bars.Data(label = "loss", value = 35.0, color = SolidColor(colors[1])),
+                        Bars.Data(label = "Keuntungan", value = 3.0, color = SolidColor(colors[0])),
+                        Bars.Data(label = "Kerugian", value = 35.0, color = SolidColor(colors[1])),
 
                         ),
                 ),
@@ -272,7 +272,7 @@ fun ExpandableCardReport(
             Column(
                 modifier = modifier.padding(horizontal = 24.dp, vertical = 14.dp)
             ) {
-                if(subheader == "Monthly"){
+                if(subheader == "Bulanan"){
                     Text(
                         text = subheader,
                         style = MaterialTheme.typography.titleLarge,
@@ -589,16 +589,16 @@ fun AdminReportPage(navController: NavHostController){
             repeat(2){
                 ExpandableCardReport(
                     modifier = Modifier,
-                    header = "Report title",
-                    subheader = "Monthly",
+                    header = "Judul Laporan",
+                    subheader = "Bulanan",
                     description = "02/03/2024",
                 )
             }
             repeat(2){
                 ExpandableCardReport(
                     modifier = Modifier,
-                    header = "Report title",
-                    subheader = "Yearly",
+                    header = "Judul Laporan",
+                    subheader = "Tahunan",
                     description = "02/03/2025",
                 )
             }

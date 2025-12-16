@@ -172,7 +172,7 @@ fun DateOfBirthField(
 
 @Composable
 fun AgeField(
-    label: String = "Age",
+    label: String = "Umur",
     ageValue: String
 ) {
     OutlinedTextField(
@@ -256,7 +256,7 @@ fun ManageUserPage(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name") },
+                    label = { Text("Nama") },
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = TextStyle(color = DeepBlue, fontSize = 16.sp)
                 )
@@ -278,7 +278,7 @@ fun ManageUserPage(
                     OutlinedTextField(
                         value = gender,
                         onValueChange = {},
-                        label = { Text("Gender") },
+                        label = { Text("Jenis Kelamin") },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         readOnly = true,
                         trailingIcon = {
@@ -325,9 +325,9 @@ fun ManageUserPage(
                     onExpandedChange = { expandedStatus = !expandedStatus }
                 ) {
                     OutlinedTextField(
-                        value = if (membershipStatus) "Active" else "Inactive",
+                        value = if (membershipStatus) "Aktif" else "Tidak aktif",
                         onValueChange = {},
-                        label = { Text("Membership Status") },
+                        label = { Text("Status Keanggotaan") },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         readOnly = true,
                         trailingIcon = {
@@ -390,12 +390,12 @@ fun ManageUserPage(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = DeepBlue)
                 ) {
-                    Text("Save Changes", color = white)
+                    Text("Edit", color = white)
                 }
 
                 TextButton(onClick = { showSheet.value = false }) {
                     Icon(Icons.Default.Close, contentDescription = null)
-                    Text("Close")
+                    Text("Tutup")
                 }
             }
         }
