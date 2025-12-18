@@ -1428,7 +1428,7 @@ fun ProfilPage(navController: NavHostController, viewModel: DashboardViewModel) 
                         .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 ) {
                     AsyncImage(
-                        model = "http://192.168.1.194:3000/user/${userId}/profile-image?v=$imageVersion",
+                        model = "http://72.62.120.224/user/${userId}/profile-image?v=$imageVersion",
                         contentDescription = "Foto Profil",
                         modifier = Modifier.fillMaxSize()
                     )
