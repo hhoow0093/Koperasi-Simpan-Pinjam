@@ -421,7 +421,7 @@ fun AdminUserSavingPage(navController: NavHostController, userId: String, viewMo
                 Spacer(Modifier.height(16.dp))
 
                 AsyncImage(
-                    model = "http://192.168.1.194:3000$selectedImageUrl",
+                    model = "http://10.0.2.2:3000$selectedImageUrl",
                     contentDescription = "Bukti Pembayaran",
                     modifier = Modifier
                         .fillMaxWidth()

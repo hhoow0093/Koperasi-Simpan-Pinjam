@@ -201,7 +201,7 @@ fun PencatatanAngsuran( navController: NavHostController, viewModel: PembayaranL
                 Spacer(Modifier.height(12.dp))
 
                 AsyncImage(
-                    model = "http://192.168.1.194:3000/pembayaran-loan/image/$Id",
+                    model = "http://10.0.2.2:3000/pembayaran-loan/image/$Id",
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
