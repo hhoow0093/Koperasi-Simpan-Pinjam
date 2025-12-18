@@ -268,8 +268,11 @@ fun SimpananPage(viewModel: DashboardViewModel) {
     // menggunakan MVVM untuk mendapatkan seluruh simpanan dari userId
 
     //dapatkan list dari DB
-    val daftarTransaksi by viewModel.transaksiSimpananList.collectAsState()
+    val daftarTransaksiAsli by viewModel.transaksiSimpananList.collectAsState()
 
+    val daftarTransaksi = remember(daftarTransaksiAsli){
+        daftarTransaksiAsli.sortedByDescending { it.tanggal } //yg terbaru paling atas
+    }
     val showPengajuanSimpananModalSheet = remember {mutableStateOf(value = false)}
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -762,9 +765,12 @@ fun PinjamanPage(viewModel: DashboardViewModel) {
     val context = LocalContext.current
     val userId = SessionManager.getUserId(context)
 
-    val daftarPengajuan by viewModel.pengajuanList.collectAsState()
+    val daftarPengajuanAsli by viewModel.pengajuanList.collectAsState()
     val pinjamanAktif by viewModel.pinjamanAktif.collectAsState()
 
+    val daftarPengajuan = remember(daftarPengajuanAsli) {
+        daftarPengajuanAsli.sortedByDescending { it.tanggal }
+    }
     println("pinjaman aktif sekarang adalah : ${pinjamanAktif}")
 
     var namaFileDipilih by remember { mutableStateOf<String?>(null) }
