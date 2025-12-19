@@ -151,6 +151,19 @@ node server.js
 </p>
 
 ---
+### 💡 3.Email dan password admin beserta akun anggota
+
+```
+#  kredensial admin
+emailAdmin = admin@gmail.com
+password = admin
+
+# kredensial anggota koperasi
+emailAnggota = howard@student.umn.ac.id
+passwordAnggota = ikanbakar123
+```
+
+--
 
 ## 💬 Ucapan Terima Kasih
 
